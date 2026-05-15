@@ -1294,5 +1294,578 @@ function attachHandlers(page) {
 // ── INIT ──────────────────────────────────────────────────
 setMode('admin', document.querySelector('.mode-btn.active'));
 </script>
+
+<!-- SUPABASE SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ══════════════════════════════════════════════════════════
+// SUPABASE CONNECTION
+// ══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://suirpxoalsvvubfrxhvd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1aXJweG9hbHN2dnViZnJ4aHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MDM4NjIsImV4cCI6MjA5NDM3OTg2Mn0.lUwLhjPdYwRT3C1uG7gdmaBh_Bw5LbEuSD_NlCjCiLc';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATUS INDICATOR ──────────────────────────────────────
+const statusDot = document.createElement('div');
+statusDot.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#1A1A18;color:white;font-size:11px;font-family:DM Mono,monospace;padding:6px 12px;border-radius:20px;z-index:9999;display:flex;align-items:center;gap:6px;';
+statusDot.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:#EF9F27;"></div><span id="db-status">Conectando a Supabase...</span>';
+document.body.appendChild(statusDot);
+
+async function checkConnection() {
+  try {
+    const { data, error } = await db.from('merchants').select('count').single();
+    if (error && error.code !== 'PGRST116') throw error;
+    statusDot.querySelector('div').style.background = '#97C459';
+    document.getElementById('db-status').textContent = 'BD conectada ✓';
+    setTimeout(() => statusDot.style.opacity = '0.4', 3000);
+    loadInitialData();
+  } catch(e) {
+    statusDot.querySelector('div').style.background = '#F09595';
+    document.getElementById('db-status').textContent = 'Error BD: ' + e.message;
+  }
+}
+
+// ── DATA LOADERS ──────────────────────────────────────────
+let appData = {
+  merchants: [],
+  inbounds: [],
+  inventory: [],
+  orders: [],
+  employees: [],
+  returns: [],
+  skus: [],
+  locations: []
+};
+
+async function loadInitialData() {
+  try {
+    const [merchants, inbounds, orders, employees, returns_, skus, locations] = await Promise.all([
+      db.from('merchants').select('*').order('name'),
+      db.from('inbounds').select('*, merchants(name)').order('created_at', { ascending: false }),
+      db.from('orders').select('*, merchants(name)').order('created_at', { ascending: false }),
+      db.from('employees').select('*').order('name'),
+      db.from('returns').select('*').order('created_at', { ascending: false }),
+      db.from('skus').select('*, merchants(name)').order('name'),
+      db.from('locations').select('*').order('code'),
+    ]);
+    appData.merchants = merchants.data || [];
+    appData.inbounds = inbounds.data || [];
+    appData.orders = orders.data || [];
+    appData.employees = employees.data || [];
+    appData.returns = returns_.data || [];
+    appData.skus = skus.data || [];
+    appData.locations = locations.data || [];
+
+    // Refresh current page with real data
+    goTo(currentPage);
+  } catch(e) {
+    console.error('Error loading data:', e);
+  }
+}
+
+// ── CRUD OPERATIONS ───────────────────────────────────────
+
+// CREATE INBOUND
+async function createInbound(merchantId, expectedDate, deliveryMethod, notes) {
+  const reference = 'INB-' + Date.now();
+  const { data, error } = await db.from('inbounds').insert([{
+    merchant_id: merchantId,
+    reference,
+    expected_date: expectedDate,
+    delivery_method: deliveryMethod,
+    notes,
+    status: 'pending'
+  }]).select().single();
+  if (error) throw error;
+  await loadInitialData();
+  return data;
+}
+
+// CREATE ORDER
+async function createOrder(merchantId, customerName, customerAddress, customerPhone, notes) {
+  const reference = 'ORD-' + Date.now();
+  const { data, error } = await db.from('orders').insert([{
+    merchant_id: merchantId,
+    reference,
+    customer_name: customerName,
+    customer_address: customerAddress,
+    customer_phone: customerPhone,
+    notes,
+    status: 'pending'
+  }]).select().single();
+  if (error) throw error;
+  await loadInitialData();
+  return data;
+}
+
+// UPDATE INBOUND STATUS
+async function updateInboundStatus(id, status) {
+  const { error } = await db.from('inbounds').update({ status }).eq('id', id);
+  if (error) throw error;
+  await loadInitialData();
+}
+
+// UPDATE ORDER STATUS
+async function updateOrderStatus(id, status) {
+  const { error } = await db.from('orders').update({ status }).eq('id', id);
+  if (error) throw error;
+  await loadInitialData();
+}
+
+// CREATE MERCHANT
+async function createMerchant(name, email, phone) {
+  const { data, error } = await db.from('merchants').insert([{ name, email, phone }]).select().single();
+  if (error) throw error;
+  await loadInitialData();
+  return data;
+}
+
+// CREATE EMPLOYEE
+async function createEmployee(name, email, role, shift) {
+  const { data, error } = await db.from('employees').insert([{ name, email, role, shift }]).select().single();
+  if (error) throw error;
+  await loadInitialData();
+  return data;
+}
+
+// CREATE RETURN
+async function createReturn(orderId, merchantId, reason, notes) {
+  const reference = 'DEV-' + Date.now();
+  const { data, error } = await db.from('returns').insert([{
+    order_id: orderId,
+    merchant_id: merchantId,
+    reference,
+    reason,
+    inspection_notes: notes,
+    status: 'pending'
+  }]).select().single();
+  if (error) throw error;
+  await loadInitialData();
+  return data;
+}
+
+// ── LIVE RENDER OVERRIDES ─────────────────────────────────
+// Override renderInbound to use real data
+const _origRenderInbound = renderPage;
+window.renderPage = function(page) {
+  if (page === 'inbound' && appData.inbounds.length > 0) {
+    return renderInboundLive();
+  }
+  if (page === 'dashboard' && appData.merchants.length > 0) {
+    return renderDashboardLive();
+  }
+  if (page === 'empleados' && appData.employees.length > 0) {
+    return renderEmpleadosLive();
+  }
+  if (page === 'devoluciones' && appData.returns.length > 0) {
+    return renderDevolucionesLive();
+  }
+  if (page === 'm_dashboard' && appData.merchants.length > 0) {
+    return renderMerchantDashboardLive();
+  }
+  return _origRenderInbound(page);
+};
+
+function statusBadge(s) {
+  const map = {
+    pending: 'badge-low', receiving: 'badge-blue', completed: 'badge-ok',
+    cancelled: 'badge-gray', with_issues: 'badge-err',
+    picking: 'badge-blue', packing: 'badge-purple', ready: 'badge-ok',
+    shipped: 'badge-gray', delivered: 'badge-ok', failed: 'badge-err',
+    returned: 'badge-low', active: 'badge-ok', inactive: 'badge-gray',
+    operator: 'badge-blue', picker: 'badge-purple', driver: 'badge-teal', supervisor: 'badge-ok',
+  };
+  const labels = {
+    pending:'Pendiente', receiving:'Recibiendo', completed:'Completado',
+    cancelled:'Cancelado', with_issues:'Con incidencias',
+    picking:'Picking', packing:'Packing', ready:'Listo',
+    shipped:'Despachado', delivered:'Entregado', failed:'Fallida',
+    returned:'Devuelto', active:'Activo', inactive:'Inactivo',
+    operator:'Operador', picker:'Picker', driver:'Conductor', supervisor:'Supervisor',
+  };
+  return `<span class="badge ${map[s]||'badge-gray'}">${labels[s]||s}</span>`;
+}
+
+function renderDashboardLive() {
+  const pendingInbounds = appData.inbounds.filter(i=>i.status==='pending').length;
+  const activeOrders = appData.orders.filter(o=>['pending','picking','packing'].includes(o.status)).length;
+  const shippedToday = appData.orders.filter(o=>o.status==='ready'||o.status==='shipped').length;
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Dashboard Fulfillment</div><div class="page-sub">Datos en tiempo real · Supabase conectado ✓</div></div>
+    <div class="page-actions"><button class="btn btn-secondary">Exportar</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Merchants activos</div><div class="stat-value" style="color:var(--orange);">${appData.merchants.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Inbounds pendientes</div><div class="stat-value" style="color:var(--blue);">${pendingInbounds}</div></div>
+    <div class="stat-card"><div class="stat-label">Órdenes activas</div><div class="stat-value" style="color:var(--green);">${activeOrders}</div></div>
+    <div class="stat-card"><div class="stat-label">Empleados</div><div class="stat-value" style="color:var(--purple);">${appData.employees.length}</div></div>
+  </div>
+  <div class="two-col" style="margin-bottom:14px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Merchants</span><button class="btn btn-primary btn-sm" onclick="showModal('nuevo-merchant')">+ Nuevo</button></div>
+      <table><thead><tr><th>Nombre</th><th>Email</th><th>Wallet</th><th>Estado</th></tr></thead><tbody>
+        ${appData.merchants.map(m=>`<tr>
+          <td><span class="merchant-tag">${m.name}</span></td>
+          <td style="color:var(--text2);font-size:11px;">${m.email}</td>
+          <td style="color:var(--green);font-weight:500;">$${parseFloat(m.wallet_balance||0).toFixed(2)}</td>
+          <td>${statusBadge(m.status)}</td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Inbounds recientes</span><button class="btn btn-primary btn-sm" onclick="goTo('inbound')">Ver todos →</button></div>
+      <table><thead><tr><th>Referencia</th><th>Merchant</th><th>Estado</th></tr></thead><tbody>
+        ${appData.inbounds.slice(0,5).map(i=>`<tr>
+          <td style="color:var(--orange);font-weight:500;">${i.reference}</td>
+          <td><span class="merchant-tag">${i.merchants?.name||'—'}</span></td>
+          <td>${statusBadge(i.status)}</td>
+        </tr>`).join('')}
+        ${appData.inbounds.length===0?'<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:20px;">No hay inbounds aún</td></tr>':''}
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Órdenes recientes</span><button class="btn btn-primary btn-sm" onclick="goTo('pickpack')">Ver todas →</button></div>
+    <table><thead><tr><th>Referencia</th><th>Merchant</th><th>Cliente</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>
+      ${appData.orders.slice(0,6).map(o=>`<tr>
+        <td style="color:var(--orange);font-weight:500;">${o.reference}</td>
+        <td><span class="merchant-tag">${o.merchants?.name||'—'}</span></td>
+        <td>${o.customer_name}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td style="color:var(--text3);font-size:11px;">${new Date(o.created_at).toLocaleDateString('es-PA')}</td>
+      </tr>`).join('')}
+      ${appData.orders.length===0?'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px;">No hay órdenes aún</td></tr>':''}
+    </tbody></table>
+  </div>`;
+}
+
+function renderInboundLive() {
+  const pending = appData.inbounds.filter(i=>i.status==='pending').length;
+  const receiving = appData.inbounds.filter(i=>i.status==='receiving').length;
+  const completed = appData.inbounds.filter(i=>i.status==='completed').length;
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Inbound</div><div class="page-sub">Recepción de inventario · datos en tiempo real</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="showModal('nuevo-inbound-live')">+ Nuevo inbound</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--orange);">${pending}</div></div>
+    <div class="stat-card"><div class="stat-label">Recibiendo</div><div class="stat-value" style="color:var(--blue);">${receiving}</div></div>
+    <div class="stat-card"><div class="stat-label">Completados</div><div class="stat-value" style="color:var(--green);">${completed}</div></div>
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${appData.inbounds.length}</div></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table><thead><tr><th>Referencia</th><th>Merchant</th><th>Método</th><th>Fecha esperada</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        ${appData.inbounds.map(i=>`<tr>
+          <td><span style="color:var(--orange);font-weight:500;">${i.reference}</span></td>
+          <td><span class="merchant-tag">${i.merchants?.name||'—'}</span></td>
+          <td style="color:var(--text2);font-size:11px;">${i.delivery_method||'—'}</td>
+          <td style="color:var(--text2);">${i.expected_date||'—'}</td>
+          <td>${statusBadge(i.status)}</td>
+          <td>
+            ${i.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="updateInboundStatus('${i.id}','receiving')">Iniciar recepción</button>`:''}
+            ${i.status==='receiving'?`<button class="btn btn-success btn-sm" onclick="updateInboundStatus('${i.id}','completed')">Completar</button>`:''}
+            ${i.status==='completed'?`<button class="btn btn-secondary btn-sm">Ver detalle</button>`:''}
+          </td>
+        </tr>`).join('')}
+        ${appData.inbounds.length===0?`<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:30px;">No hay inbounds. Crea el primero →</td></tr>`:''}
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+function renderEmpleadosLive() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Empleados</div><div class="page-sub">Personal activo del almacén · datos en tiempo real</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="showModal('nuevo-empleado-live')">+ Nuevo empleado</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Total empleados</div><div class="stat-value">${appData.employees.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Activos</div><div class="stat-value" style="color:var(--green);">${appData.employees.filter(e=>e.status==='active').length}</div></div>
+    <div class="stat-card"><div class="stat-label">Operadores</div><div class="stat-value" style="color:var(--blue);">${appData.employees.filter(e=>e.role==='operator'||e.role==='picker').length}</div></div>
+    <div class="stat-card"><div class="stat-label">Conductores</div><div class="stat-value" style="color:var(--teal);">${appData.employees.filter(e=>e.role==='driver').length}</div></div>
+  </div>
+  <div class="two-col">
+    ${appData.employees.map(e=>`<div class="emp-card">
+      <div class="emp-avatar">${e.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="emp-name">${e.name}</div>
+          ${statusBadge(e.status)}
+        </div>
+        <div class="emp-role">${e.email}</div>
+        <div class="emp-stats" style="margin-top:6px;">
+          ${statusBadge(e.role)}
+          <span class="emp-stat">${e.shift==='morning'?'7am–3pm':e.shift==='afternoon'?'3pm–11pm':'8am–5pm'}</span>
+        </div>
+      </div>
+    </div>`).join('')}
+    ${appData.employees.length===0?'<div style="text-align:center;color:var(--text3);padding:40px;grid-column:1/-1;">No hay empleados. Agrega el primero →</div>':''}
+  </div>`;
+}
+
+function renderDevolucionesLive() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Devoluciones</div><div class="page-sub">Gestión de retornos · datos en tiempo real</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="showModal('nueva-devolucion-live')">+ Nueva devolución</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${appData.returns.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--amber);">${appData.returns.filter(r=>r.status==='pending').length}</div></div>
+    <div class="stat-card"><div class="stat-label">Restocked</div><div class="stat-value" style="color:var(--green);">${appData.returns.filter(r=>r.status==='restocked').length}</div></div>
+    <div class="stat-card"><div class="stat-label">Descartadas</div><div class="stat-value" style="color:var(--red);">${appData.returns.filter(r=>r.status==='discarded').length}</div></div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table><thead><tr><th>Referencia</th><th>Motivo</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+      <tbody>
+        ${appData.returns.map(r=>`<tr>
+          <td style="color:var(--orange);font-weight:500;">${r.reference}</td>
+          <td style="color:var(--text2);">${r.reason}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td style="color:var(--text3);font-size:11px;">${new Date(r.created_at).toLocaleDateString('es-PA')}</td>
+          <td>
+            ${r.status==='pending'?`
+              <button class="btn btn-success btn-sm" onclick="resolveReturn('${r.id}','restocked')" style="margin-right:4px;">Restock</button>
+              <button class="btn btn-danger btn-sm" onclick="resolveReturn('${r.id}','discarded')">Descartar</button>
+            `:''}
+          </td>
+        </tr>`).join('')}
+        ${appData.returns.length===0?`<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:30px;">No hay devoluciones registradas</td></tr>`:''}
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+async function resolveReturn(id, status) {
+  const { error } = await db.from('returns').update({ status, inspected_at: new Date().toISOString() }).eq('id', id);
+  if (!error) await loadInitialData();
+}
+
+function renderMerchantDashboardLive() {
+  const myMerchant = appData.merchants[0];
+  const myOrders = appData.orders.filter(o=>o.merchant_id===myMerchant?.id);
+  const activeOrders = myOrders.filter(o=>['pending','picking','packing'].includes(o.status)).length;
+
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Mi fulfillment</div><div class="page-sub">${myMerchant?.name||'Merchant'} · datos en tiempo real</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="goTo('m_inbound')">+ Enviar stock</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Balance wallet</div><div class="stat-value" style="color:var(--green);">$${parseFloat(myMerchant?.wallet_balance||0).toFixed(2)}</div></div>
+    <div class="stat-card"><div class="stat-label">Órdenes activas</div><div class="stat-value" style="color:var(--blue);">${activeOrders}</div></div>
+    <div class="stat-card"><div class="stat-label">Total órdenes</div><div class="stat-value">${myOrders.length}</div></div>
+    <div class="stat-card"><div class="stat-label">SKUs registrados</div><div class="stat-value" style="color:var(--purple);">${appData.skus.filter(s=>s.merchant_id===myMerchant?.id).length}</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Mis órdenes recientes</span></div>
+    <table><thead><tr><th>Referencia</th><th>Cliente</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>
+      ${myOrders.slice(0,8).map(o=>`<tr>
+        <td style="color:var(--orange);font-weight:500;">${o.reference}</td>
+        <td>${o.customer_name}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td style="color:var(--text3);font-size:11px;">${new Date(o.created_at).toLocaleDateString('es-PA')}</td>
+      </tr>`).join('')}
+      ${myOrders.length===0?'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:30px;">No hay órdenes aún</td></tr>':''}
+    </tbody></table>
+  </div>`;
+}
+
+// ── LIVE MODALS ───────────────────────────────────────────
+const _origShowModal = showModal;
+window.showModal = function(type) {
+  if (type === 'nuevo-inbound-live') {
+    const merchantOptions = appData.merchants.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+    document.getElementById('modal-title').textContent = 'Nuevo inbound';
+    document.getElementById('modal-sub').textContent = 'Los datos se guardarán en Supabase';
+    document.getElementById('modal-body').innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><div class="form-label">Merchant <span>*</span></div><select class="form-select" id="ib-merchant">${merchantOptions}</select></div>
+        <div class="form-group"><div class="form-label">Fecha esperada</div><input type="date" class="form-input" id="ib-date" value="${new Date().toISOString().split('T')[0]}"/></div>
+        <div class="form-group"><div class="form-label">Método de entrega</div>
+          <select class="form-select" id="ib-method">
+            <option value="merchant_brings">Merchant trae</option>
+            <option value="external_courier">Courier externo</option>
+            <option value="hot_express">Hot Express</option>
+            <option value="uno_express">Uno Express</option>
+          </select>
+        </div>
+        <div class="form-group full"><div class="form-label">Notas</div><textarea class="form-textarea" id="ib-notes" placeholder="Instrucciones especiales..."></textarea></div>
+      </div>
+      <div id="ib-msg" style="margin-top:8px;"></div>`;
+    document.getElementById('modal-footer').innerHTML = `
+      <span class="footer-hint">Se guardará en la base de datos</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitInbound()">Crear inbound</button>
+      </div>`;
+    document.getElementById('modal').classList.add('open');
+    return;
+  }
+
+  if (type === 'nuevo-empleado-live') {
+    document.getElementById('modal-title').textContent = 'Nuevo empleado';
+    document.getElementById('modal-sub').textContent = 'Se guardará en Supabase';
+    document.getElementById('modal-body').innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><div class="form-label">Nombre completo <span>*</span></div><input class="form-input" id="emp-name" placeholder="Nombre y apellido"/></div>
+        <div class="form-group"><div class="form-label">Email <span>*</span></div><input type="email" class="form-input" id="emp-email" placeholder="correo@email.com"/></div>
+        <div class="form-group"><div class="form-label">Rol</div>
+          <select class="form-select" id="emp-role">
+            <option value="operator">Operador</option>
+            <option value="picker">Picker</option>
+            <option value="driver">Conductor</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+        </div>
+        <div class="form-group"><div class="form-label">Turno</div>
+          <select class="form-select" id="emp-shift">
+            <option value="morning">7am – 3pm</option>
+            <option value="afternoon">3pm – 11pm</option>
+            <option value="full">8am – 5pm</option>
+          </select>
+        </div>
+      </div>
+      <div id="emp-msg" style="margin-top:8px;"></div>`;
+    document.getElementById('modal-footer').innerHTML = `
+      <span class="footer-hint">El empleado quedará activo inmediatamente</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitEmployee()">Crear empleado</button>
+      </div>`;
+    document.getElementById('modal').classList.add('open');
+    return;
+  }
+
+  if (type === 'nueva-devolucion-live') {
+    const merchantOptions = appData.merchants.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+    document.getElementById('modal-title').textContent = 'Registrar devolución';
+    document.getElementById('modal-sub').textContent = 'Se guardará en Supabase';
+    document.getElementById('modal-body').innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><div class="form-label">Merchant</div><select class="form-select" id="ret-merchant">${merchantOptions}</select></div>
+        <div class="form-group"><div class="form-label">Motivo <span>*</span></div>
+          <select class="form-select" id="ret-reason">
+            <option value="Entrega fallida">Entrega fallida</option>
+            <option value="Producto incorrecto">Producto incorrecto</option>
+            <option value="Producto dañado">Producto dañado</option>
+            <option value="Cliente rechazó">Cliente rechazó</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group full"><div class="form-label">Notas</div><textarea class="form-textarea" id="ret-notes" placeholder="Detalle del retorno..."></textarea></div>
+      </div>
+      <div id="ret-msg" style="margin-top:8px;"></div>`;
+    document.getElementById('modal-footer').innerHTML = `
+      <span class="footer-hint">Se notificará al merchant automáticamente</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitReturn()">Registrar</button>
+      </div>`;
+    document.getElementById('modal').classList.add('open');
+    return;
+  }
+
+  if (type === 'nuevo-merchant') {
+    document.getElementById('modal-title').textContent = 'Nuevo merchant';
+    document.getElementById('modal-sub').textContent = 'Se guardará en Supabase';
+    document.getElementById('modal-body').innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><div class="form-label">Nombre <span>*</span></div><input class="form-input" id="mer-name" placeholder="Nombre de la tienda"/></div>
+        <div class="form-group"><div class="form-label">Email <span>*</span></div><input type="email" class="form-input" id="mer-email" placeholder="tienda@email.com"/></div>
+        <div class="form-group full"><div class="form-label">Teléfono</div><input class="form-input" id="mer-phone" placeholder="+507 6000-0000"/></div>
+      </div>
+      <div id="mer-msg" style="margin-top:8px;"></div>`;
+    document.getElementById('modal-footer').innerHTML = `
+      <span class="footer-hint">El merchant quedará activo inmediatamente</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitMerchant()">Crear merchant</button>
+      </div>`;
+    document.getElementById('modal').classList.add('open');
+    return;
+  }
+
+  _origShowModal(type);
+};
+
+// ── FORM SUBMISSIONS ──────────────────────────────────────
+async function submitInbound() {
+  const merchantId = document.getElementById('ib-merchant')?.value;
+  const date = document.getElementById('ib-date')?.value;
+  const method = document.getElementById('ib-method')?.value;
+  const notes = document.getElementById('ib-notes')?.value;
+  const msg = document.getElementById('ib-msg');
+  if (!merchantId) { msg.innerHTML = '<div class="alert alert-warn"><div class="alert-dot"></div>Selecciona un merchant</div>'; return; }
+  msg.innerHTML = '<div style="color:var(--text2);font-size:12px;">Guardando...</div>';
+  try {
+    await createInbound(merchantId, date, method, notes);
+    closeModal();
+    goTo('inbound');
+  } catch(e) {
+    msg.innerHTML = `<div class="alert alert-warn"><div class="alert-dot"></div>Error: ${e.message}</div>`;
+  }
+}
+
+async function submitEmployee() {
+  const name = document.getElementById('emp-name')?.value;
+  const email = document.getElementById('emp-email')?.value;
+  const role = document.getElementById('emp-role')?.value;
+  const shift = document.getElementById('emp-shift')?.value;
+  const msg = document.getElementById('emp-msg');
+  if (!name || !email) { msg.innerHTML = '<div class="alert alert-warn"><div class="alert-dot"></div>Nombre y email son requeridos</div>'; return; }
+  msg.innerHTML = '<div style="color:var(--text2);font-size:12px;">Guardando...</div>';
+  try {
+    await createEmployee(name, email, role, shift);
+    closeModal();
+    goTo('empleados');
+  } catch(e) {
+    msg.innerHTML = `<div class="alert alert-warn"><div class="alert-dot"></div>Error: ${e.message}</div>`;
+  }
+}
+
+async function submitReturn() {
+  const merchantId = document.getElementById('ret-merchant')?.value;
+  const reason = document.getElementById('ret-reason')?.value;
+  const notes = document.getElementById('ret-notes')?.value;
+  const msg = document.getElementById('ret-msg');
+  msg.innerHTML = '<div style="color:var(--text2);font-size:12px;">Guardando...</div>';
+  try {
+    await createReturn(null, merchantId, reason, notes);
+    closeModal();
+    goTo('devoluciones');
+  } catch(e) {
+    msg.innerHTML = `<div class="alert alert-warn"><div class="alert-dot"></div>Error: ${e.message}</div>`;
+  }
+}
+
+async function submitMerchant() {
+  const name = document.getElementById('mer-name')?.value;
+  const email = document.getElementById('mer-email')?.value;
+  const phone = document.getElementById('mer-phone')?.value;
+  const msg = document.getElementById('mer-msg');
+  if (!name || !email) { msg.innerHTML = '<div class="alert alert-warn"><div class="alert-dot"></div>Nombre y email son requeridos</div>'; return; }
+  msg.innerHTML = '<div style="color:var(--text2);font-size:12px;">Guardando...</div>';
+  try {
+    await createMerchant(name, email, phone);
+    closeModal();
+    goTo('dashboard');
+  } catch(e) {
+    msg.innerHTML = `<div class="alert alert-warn"><div class="alert-dot"></div>Error: ${e.message}</div>`;
+  }
+}
+
+// ── START ─────────────────────────────────────────────────
+checkConnection();
+</script>
 </body>
 </html>
