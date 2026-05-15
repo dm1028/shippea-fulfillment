@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shippea Fulfillment — Prototipo Completo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange:#E8572A; --orange-light:rgba(232,87,42,0.08); --orange-mid:rgba(232,87,42,0.15);
+  --bg:#F4F3EF; --surface:#FFFFFF; --surface2:#F7F6F2;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.14);
+  --text:#1A1A18; --text2:#6B6A64; --text3:#A8A79F;
+  --green:#3B6D11; --green-bg:#EAF3DE; --green-bd:#97C459;
+  --blue:#185FA5; --blue-bg:#E6F1FB; --blue-bd:#85B7EB;
+  --amber:#854F0B; --amber-bg:#FAEEDA; --amber-bd:#EF9F27;
+  --red:#A32D2D; --red-bg:#FCEBEB; --red-bd:#F09595;
+  --purple:#534AB7; --purple-bg:#EEEDFE; --purple-bd:#AFA9EC;
+  --teal:#0F6E56; --teal-bg:#E1F5EE; --teal-bd:#5DCAA5;
+  --r:10px; --r-sm:6px;
+  --font:'DM Sans',system-ui,sans-serif; --mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+
+/* MODE SWITCHER */
+.mode-bar{background:var(--text);padding:8px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.mode-label{font-size:11px;color:rgba(255,255,255,0.4);font-weight:500;letter-spacing:0.06em;text-transform:uppercase;}
+.mode-btn{font-size:12px;padding:4px 12px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);background:none;color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.15s;}
+.mode-btn.active{background:var(--orange);border-color:var(--orange);color:white;font-weight:500;}
+.mode-spacer{flex:1;}
+.mode-info{font-size:11px;color:rgba(255,255,255,0.3);}
+
+/* APP LAYOUT */
+.app{display:flex;height:calc(100vh - 37px);overflow:hidden;}
+.sidebar{width:196px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sb-top{padding:16px 14px 12px;border-bottom:1px solid var(--border);}
+.sb-logo{display:flex;align-items:center;gap:8px;}
+.sb-logo-mark{width:24px;height:24px;background:var(--orange);border-radius:5px;}
+.sb-logo-name{font-size:15px;font-weight:600;color:var(--text);}
+.sb-body{flex:1;padding:8px;}
+.sb-section{margin-bottom:18px;}
+.sb-section-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.07em;text-transform:uppercase;padding:0 6px;margin-bottom:3px;}
+.sb-section-label.ful{color:var(--orange);}
+.sb-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);padding:6px 8px;border-radius:var(--r-sm);cursor:pointer;transition:all 0.12s;margin-bottom:1px;}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{background:var(--orange-light);color:var(--orange);font-weight:500;}
+.sb-item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.sb-badge{font-size:10px;background:var(--orange);color:white;padding:1px 5px;border-radius:8px;margin-left:auto;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 22px;display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:50px;}
+.crumb{font-size:12px;color:var(--text2);cursor:pointer;}
+.crumb:hover{color:var(--text);}
+.crumb-sep{font-size:12px;color:var(--text3);}
+.crumb-active{font-size:12px;font-weight:500;color:var(--text);}
+.topbar-spacer{flex:1;}
+.tb-wallet{font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--orange-light);color:var(--orange);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+.page-content{flex:1;overflow-y:auto;padding:20px 22px;}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;}
+.page-title{font-size:19px;font-weight:700;color:var(--text);letter-spacing:-0.3px;}
+.page-sub{font-size:12px;color:var(--text2);margin-top:3px;}
+.page-actions{display:flex;gap:8px;flex-shrink:0;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:7px 13px;border-radius:var(--r-sm);cursor:pointer;border:none;transition:all 0.12s;font-family:var(--font);}
+.btn-primary{background:var(--orange);color:white;}
+.btn-primary:hover{background:#cc4a22;}
+.btn-secondary{background:var(--surface);color:var(--text2);border:1px solid var(--border2);}
+.btn-secondary:hover{background:var(--surface2);color:var(--text);}
+.btn-sm{font-size:11px;padding:5px 9px;}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
+.btn-success{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);}
+.card-header{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text);}
+.card-sub{font-size:11px;color:var(--text3);}
+.card-body{padding:14px 16px;}
+
+/* STATS */
+.stat-grid{display:grid;gap:10px;}
+.stat-grid-4{grid-template-columns:repeat(4,minmax(0,1fr));}
+.stat-grid-5{grid-template-columns:repeat(5,minmax(0,1fr));}
+.stat-grid-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;}
+.stat-label{font-size:10px;color:var(--text2);margin-bottom:4px;}
+.stat-value{font-size:20px;font-weight:600;color:var(--text);}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:3px;}
+
+/* BADGES */
+.badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;}
+.badge-ok{background:var(--green-bg);color:var(--green);}
+.badge-low{background:var(--amber-bg);color:var(--amber);}
+.badge-err{background:var(--red-bg);color:var(--red);}
+.badge-blue{background:var(--blue-bg);color:var(--blue);}
+.badge-purple{background:var(--purple-bg);color:var(--purple);}
+.badge-teal{background:var(--teal-bg);color:var(--teal);}
+.badge-gray{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.merchant-tag{font-size:11px;color:var(--blue);background:var(--blue-bg);padding:2px 7px;border-radius:8px;display:inline-block;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;font-size:10px;color:var(--text3);font-weight:600;padding:8px 14px;border-bottom:1px solid var(--border);letter-spacing:0.04em;text-transform:uppercase;background:var(--surface);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#FAFAF7;}
+
+/* PROGRESS */
+.prog-bar{height:4px;background:var(--border);border-radius:2px;}
+.prog-fill{height:4px;border-radius:2px;}
+
+/* TABS */
+.tab-row{display:flex;border-bottom:1px solid var(--border);padding:0 16px;margin-bottom:0;}
+.tab{font-size:12px;color:var(--text2);padding:8px 10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:500;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);}
+.form-label span{color:var(--orange);}
+.form-input,.form-select{font-size:12px;color:var(--text);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);padding:7px 9px;width:100%;font-family:var(--font);}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--orange);}
+.form-textarea{font-size:12px;color:var(--text);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);padding:7px 9px;width:100%;resize:none;height:64px;font-family:var(--font);}
+
+/* ALERTS */
+.alert{padding:9px 12px;border-radius:var(--r-sm);font-size:12px;display:flex;gap:7px;align-items:flex-start;line-height:1.5;}
+.alert-warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:#633806;}
+.alert-info{background:var(--blue-bg);border:1px solid var(--blue-bd);color:#0C447C;}
+.alert-ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);}
+.alert-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:3px;background:currentColor;}
+
+/* LAYOUT HELPERS */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.col-2-1{display:grid;grid-template-columns:2fr 1fr;gap:14px;}
+.col-1-2{display:grid;grid-template-columns:1fr 2fr;gap:14px;}
+.flex-col{display:flex;flex-direction:column;gap:12px;}
+.info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.info-row:last-child{border-bottom:none;}
+.info-label{color:var(--text2);}
+.info-value{font-weight:500;}
+.section-title{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px;}
+.spacer{height:14px;}
+
+/* FILTER ROW */
+.filter-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);}
+.search-box{flex:1;display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 9px;gap:5px;max-width:260px;}
+.search-box input{background:none;border:none;outline:none;font-size:12px;color:var(--text);width:100%;font-family:var(--font);}
+.filter-select{font-size:12px;color:var(--text2);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);padding:6px 9px;font-family:var(--font);}
+
+/* FOOTER BAR */
+.footer-bar{background:var(--surface);border-top:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.footer-hint{font-size:11px;color:var(--text3);}
+
+/* SPLIT LAYOUT */
+.split-layout{display:flex;flex:1;overflow:hidden;}
+.split-left{width:340px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.split-right{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.split-body{flex:1;overflow-y:auto;}
+
+/* ORDER / LIST ITEMS */
+.list-item{padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.list-item:hover{background:var(--surface2);}
+.list-item.selected{background:var(--orange-light);border-left:2px solid var(--orange);padding-left:12px;}
+.item-num{font-size:13px;font-weight:600;color:var(--orange);}
+.item-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+.item-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text3);}
+
+/* TIMELINE */
+.tl-item{display:flex;gap:10px;padding:7px 0;}
+.tl-wrap{display:flex;flex-direction:column;align-items:center;}
+.tl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.tl-line{width:1px;flex:1;margin:4px 0;min-height:12px;}
+.tl-title{font-size:12px;font-weight:500;color:var(--text);}
+.tl-title.muted{color:var(--text3);font-weight:400;}
+.tl-time{font-size:10px;color:var(--text3);margin-top:1px;}
+
+/* PICK ITEM */
+.pick-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.pick-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.pick-check.done{background:var(--orange);border-color:var(--orange);}
+.pick-check.done::after{content:'';width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block;}
+.pick-name{font-size:12px;font-weight:500;flex:1;}
+.pick-name.done{text-decoration:line-through;color:var(--text3);}
+.loc-pill{font-size:10px;font-family:var(--mono);background:var(--orange-light);color:var(--orange);padding:2px 6px;border-radius:4px;}
+
+/* SERVICE ROW */
+.svc-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);}
+.svc-row:last-child{border-bottom:none;}
+.svc-icon{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.svc-name{font-size:12px;font-weight:500;flex:1;}
+.svc-unit{font-size:10px;color:var(--text3);margin-top:1px;}
+.toggle{width:32px;height:18px;background:var(--border2);border-radius:9px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--orange);}
+.toggle-knob{width:12px;height:12px;background:white;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.2s;}
+.toggle.on .toggle-knob{left:17px;}
+.rate-input{font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 8px;width:80px;color:var(--text);text-align:right;font-family:var(--font);}
+.rate-input:focus{outline:none;border-color:var(--orange);}
+
+/* EMPLOYEE */
+.emp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;gap:12px;align-items:flex-start;}
+.emp-avatar{width:38px;height:38px;border-radius:50%;background:var(--orange-light);color:var(--orange);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.emp-name{font-size:13px;font-weight:600;}
+.emp-role{font-size:11px;color:var(--text2);margin-top:2px;}
+.emp-stats{display:flex;gap:10px;margin-top:8px;}
+.emp-stat{font-size:11px;color:var(--text2);background:var(--surface2);padding:3px 8px;border-radius:4px;}
+
+/* RETURN ITEM */
+.return-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;}
+.return-card:hover{border-color:var(--border2);}
+.return-card.selected{border-color:var(--orange);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);width:480px;max-width:95vw;max-height:88vh;overflow-y:auto;transform:translateY(8px);transition:transform 0.2s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;}
+.modal-title{font-size:14px;font-weight:600;}
+.modal-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.modal-close{font-size:18px;color:var(--text3);background:none;border:none;cursor:pointer;}
+.modal-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px;}
+.modal-footer{padding:10px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+</style>
+</head>
+<body>
+
+<!-- MODE BAR -->
+<div class="mode-bar">
+  <span class="mode-label">Vista:</span>
+  <button class="mode-btn active" onclick="setMode('admin',this)">Admin Shippea</button>
+  <button class="mode-btn" onclick="setMode('merchant',this)">Portal Merchant</button>
+  <div class="mode-spacer"></div>
+  <span class="mode-info">Shippea Fulfillment · Prototipo v1 · Abril 2026</span>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">
+        <div class="sb-logo-mark"></div>
+        <span class="sb-logo-name">Shippea</span>
+      </div>
+    </div>
+    <div class="sb-body" id="sb-body"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div id="breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:12px;"></div>
+      <div class="topbar-spacer"></div>
+      <div class="tb-wallet" id="tb-wallet">💳 $4,967.12</div>
+      <div class="avatar" id="tb-avatar">AD</div>
+    </div>
+    <div class="page-content" id="page-content"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modal-title"></div><div class="modal-sub" id="modal-sub"></div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────
+const ADMIN_PAGES = {
+  dashboard: { label:'Dashboard', group:'main' },
+  inbound: { label:'Inbound', group:'fulfillment' },
+  inventario: { label:'Inventario', group:'fulfillment' },
+  ubicaciones: { label:'Ubicaciones', group:'fulfillment' },
+  pickpack: { label:'Pick & Pack', group:'fulfillment' },
+  tarifario: { label:'Tarifario', group:'fulfillment' },
+  facturacion: { label:'Facturación', group:'fulfillment' },
+  empleados: { label:'Empleados', group:'operacion' },
+  devoluciones: { label:'Devoluciones', group:'operacion' },
+  reportes: { label:'Reportes', group:'operacion' },
+};
+const MERCHANT_PAGES = {
+  m_dashboard: { label:'Dashboard', group:'fulfillment' },
+  m_inventario: { label:'Mi inventario', group:'fulfillment' },
+  m_ordenes: { label:'Mis órdenes', group:'fulfillment' },
+  m_inbound: { label:'Enviar stock', group:'fulfillment' },
+  m_reportes: { label:'Reportes', group:'fulfillment' },
+};
+const SB_GROUPS = {
+  admin: { main:'Main', fulfillment:'Fulfillment', operacion:'Operación' },
+  merchant: { fulfillment:'Mi fulfillment' },
+};
+
+let currentMode = 'admin';
+let currentPage = 'dashboard';
+
+// ── SETUP ─────────────────────────────────────────────────
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tb-wallet').style.display = mode==='merchant' ? 'flex' : 'flex';
+  document.getElementById('tb-wallet').textContent = mode==='merchant' ? '💳 $10.00' : '💳 $4,967.12';
+  document.getElementById('tb-avatar').textContent = mode==='merchant' ? 'CS' : 'AD';
+  const firstPage = mode==='admin' ? 'dashboard' : 'm_dashboard';
+  buildSidebar(mode);
+  goTo(firstPage);
+}
+
+function buildSidebar(mode) {
+  const pages = mode==='admin' ? ADMIN_PAGES : MERCHANT_PAGES;
+  const groups = SB_GROUPS[mode];
+  const sb = document.getElementById('sb-body');
+  sb.innerHTML = '';
+  const grouped = {};
+  Object.entries(pages).forEach(([id,p]) => {
+    if(!grouped[p.group]) grouped[p.group]=[];
+    grouped[p.group].push({id,...p});
+  });
+  Object.entries(grouped).forEach(([gKey, items]) => {
+    const sec = document.createElement('div');
+    sec.className = 'sb-section';
+    const isFul = gKey==='fulfillment';
+    sec.innerHTML = `<div class="sb-section-label ${isFul?'ful':''}">${groups[gKey]||gKey}</div>`;
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'sb-item';
+      el.id = 'sb-'+item.id;
+      el.innerHTML = `<div class="dot"></div>${item.label}`;
+      if(item.id==='inbound') el.innerHTML += `<span class="sb-badge">4</span>`;
+      if(item.id==='pickpack') el.innerHTML += `<span class="sb-badge">5</span>`;
+      if(item.id==='devoluciones') el.innerHTML += `<span class="sb-badge">2</span>`;
+      el.onclick = () => goTo(item.id);
+      sec.appendChild(el);
+    });
+    sb.appendChild(sec);
+  });
+}
+
+function goTo(page) {
+  currentPage = page;
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  const sbEl = document.getElementById('sb-'+page);
+  if(sbEl) sbEl.classList.add('active');
+  const pages = currentMode==='admin' ? ADMIN_PAGES : MERCHANT_PAGES;
+  const pageData = pages[page];
+  const bc = document.getElementById('breadcrumb');
+  if(pageData) {
+    bc.innerHTML = `<span class="crumb" onclick="goTo('${currentMode==='admin'?'dashboard':'m_dashboard'}')">Fulfillment</span><span class="crumb-sep">›</span><span class="crumb-active">${pageData.label}</span>`;
+  }
+  const pc = document.getElementById('page-content');
+  pc.innerHTML = renderPage(page);
+  attachHandlers(page);
+}
+
+// ── PAGE RENDERERS ────────────────────────────────────────
+function renderPage(page) {
+  switch(page) {
+    case 'dashboard': return renderAdminDashboard();
+    case 'inbound': return renderInbound();
+    case 'inventario': return renderInventario();
+    case 'ubicaciones': return renderUbicaciones();
+    case 'pickpack': return renderPickPack();
+    case 'tarifario': return renderTarifario();
+    case 'facturacion': return renderFacturacion();
+    case 'empleados': return renderEmpleados();
+    case 'devoluciones': return renderDevoluciones();
+    case 'reportes': return renderReportes();
+    case 'm_dashboard': return renderMerchantDashboard();
+    case 'm_inventario': return renderMerchantInventario();
+    case 'm_ordenes': return renderMerchantOrdenes();
+    case 'm_inbound': return renderMerchantInbound();
+    case 'm_reportes': return renderMerchantReportes();
+    default: return `<div style="padding:40px;text-align:center;color:var(--text3);">Página en construcción</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ADMIN PAGES
+// ══════════════════════════════════════════════════════════
+
+function renderAdminDashboard() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Dashboard Fulfillment</div><div class="page-sub">Resumen operativo · 21 Abr 2026</div></div>
+    <div class="page-actions"><button class="btn btn-secondary">Exportar</button></div>
+  </div>
+  <div class="stat-grid stat-grid-5" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Inbounds pendientes</div><div class="stat-value" style="color:var(--orange);">4</div><div class="stat-sub">2 recibiendo hoy</div></div>
+    <div class="stat-card"><div class="stat-label">Órdenes hoy</div><div class="stat-value" style="color:var(--blue);">18</div><div class="stat-sub">5 en picking</div></div>
+    <div class="stat-card"><div class="stat-label">Unidades en almacén</div><div class="stat-value" style="color:var(--green);">847</div><div class="stat-sub">3 merchants</div></div>
+    <div class="stat-card"><div class="stat-label">Devoluciones</div><div class="stat-value" style="color:var(--amber);">2</div><div class="stat-sub">pendientes inspección</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue mes</div><div class="stat-value" style="color:var(--purple);">$412</div><div class="stat-sub">estimado abril</div></div>
+  </div>
+  <div class="two-col" style="margin-bottom:14px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Inbounds activos</span><button class="btn btn-primary btn-sm" onclick="goTo('inbound')">Ver todos →</button></div>
+      <table><thead><tr><th>Inbound</th><th>Merchant</th><th>Progreso</th><th>Estado</th></tr></thead><tbody>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#0041</span></td><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td><div style="font-size:11px;">0/78</div><div class="prog-bar" style="margin-top:3px;"><div class="prog-fill" style="width:0%;background:var(--orange);"></div></div></td><td><span class="badge badge-low">Pendiente</span></td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#0040</span></td><td><span class="merchant-tag">Curio Shop</span></td><td><div style="font-size:11px;">74/120</div><div class="prog-bar" style="margin-top:3px;"><div class="prog-fill" style="width:62%;background:var(--orange);"></div></div></td><td><span class="badge badge-blue">Recibiendo</span></td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Pick & Pack hoy</span><button class="btn btn-primary btn-sm" onclick="goTo('pickpack')">Ver todos →</button></div>
+      <table><thead><tr><th>Orden</th><th>Merchant</th><th>Items</th><th>Estado</th></tr></thead><tbody>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#9200560</span></td><td><span class="merchant-tag">Curio Shop</span></td><td>4 uds</td><td><span class="badge badge-blue">Picking</span></td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#9200561</span></td><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td>2 uds</td><td><span class="badge badge-gray">Pendiente</span></td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#9200562</span></td><td><span class="merchant-tag">Daniela Diaz</span></td><td>6 uds</td><td><span class="badge badge-purple">Packing</span></td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">SKUs con stock bajo</span></div>
+      <table><thead><tr><th>SKU / Producto</th><th>Merchant</th><th>Stock</th><th>Mín.</th></tr></thead><tbody>
+        <tr><td><div style="font-weight:500;">Vaso Bambú 500ml</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-012</div></td><td><span class="merchant-tag">Curio Shop</span></td><td style="color:var(--amber);font-weight:500;">9</td><td style="color:var(--text3);">15</td></tr>
+        <tr><td><div style="font-weight:500;">Bowl Cerámica Grande</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-015</div></td><td><span class="merchant-tag">Curio Shop</span></td><td style="color:var(--red);font-weight:500;">8</td><td style="color:var(--text3);">20</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Empleados en turno</span><button class="btn btn-secondary btn-sm" onclick="goTo('empleados')">Ver todos →</button></div>
+      <div style="padding:8px 14px;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
+          <div class="emp-avatar" style="width:30px;height:30px;font-size:11px;">VB</div>
+          <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Vianca B.</div><div style="font-size:10px;color:var(--text2);">Operadora · Inbound + Scanning</div></div>
+          <span class="badge badge-ok">Activa</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;">
+          <div class="emp-avatar" style="width:30px;height:30px;font-size:11px;">EP</div>
+          <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Ernesto P.</div><div style="font-size:10px;color:var(--text2);">Operador · Pick & Pack</div></div>
+          <span class="badge badge-ok">Activo</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderInbound() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Inbound</div><div class="page-sub">Recepción de inventario en almacén</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="showModal('nuevo-inbound')">+ Nuevo inbound</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--orange);">4</div></div>
+    <div class="stat-card"><div class="stat-label">Recibiendo hoy</div><div class="stat-value" style="color:var(--blue);">2</div></div>
+    <div class="stat-card"><div class="stat-label">Completados (mes)</div><div class="stat-value" style="color:var(--green);">18</div></div>
+    <div class="stat-card"><div class="stat-label">Uds recibidas</div><div class="stat-value" style="color:var(--amber);">342</div></div>
+  </div>
+  <div class="card">
+    <div class="tab-row"><div class="tab active">Todos</div><div class="tab">Pendientes</div><div class="tab">Recibiendo</div><div class="tab">Completados</div><div class="tab">Con incidencias</div></div>
+    <div class="filter-row">
+      <div class="search-box"><input placeholder="Buscar inbound, merchant..."/></div>
+      <select class="filter-select"><option>Todos los merchants</option><option>Un Poco Mas Yo</option><option>Curio Shop</option></select>
+      <button class="btn btn-primary btn-sm">Buscar</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Inbound</th><th>Merchant</th><th>SKUs / Uds</th><th>Fecha esperada</th><th>Progreso</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#0041</span></td><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td>3 SKUs · 78 uds</td><td>28 Abr 2026</td><td><div style="font-size:11px;">0/78</div><div class="prog-bar" style="margin-top:3px;"><div class="prog-fill" style="width:0%;background:var(--orange);"></div></div></td><td><span class="badge badge-low">Pendiente</span></td><td><button class="btn btn-primary btn-sm">Recibir</button></td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#0040</span></td><td><span class="merchant-tag">Curio Shop</span></td><td>5 SKUs · 120 uds</td><td>26 Abr 2026</td><td><div style="font-size:11px;">74/120</div><div class="prog-bar" style="margin-top:3px;"><div class="prog-fill" style="width:62%;background:var(--orange);"></div></div></td><td><span class="badge badge-blue">Recibiendo</span></td><td><button class="btn btn-primary btn-sm">Continuar</button></td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#0039</span></td><td><span class="merchant-tag">Daniela Diaz</span></td><td>2 SKUs · 30 uds</td><td>24 Abr 2026</td><td><div style="font-size:11px;">30/30</div><div class="prog-bar" style="margin-top:3px;"><div class="prog-fill" style="width:100%;background:var(--green);"></div></div></td><td><span class="badge badge-ok">Completado</span></td><td><button class="btn btn-secondary btn-sm">Ver detalle</button></td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#0038</span></td><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td>4 SKUs · 60 uds</td><td>22 Abr 2026</td><td><div style="font-size:11px;">55/60</div><div class="prog-bar" style="margin-top:3px;"><div class="prog-fill" style="width:92%;background:var(--amber);"></div></div></td><td><span class="badge badge-err">Incidencia</span></td><td><button class="btn btn-secondary btn-sm">Ver incidencia</button></td></tr>
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+function renderInventario() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Inventario</div><div class="page-sub">Stock en tiempo real por SKU y ubicación</div></div>
+    <div class="page-actions">
+      <button class="btn btn-secondary" onclick="showModal('ajuste-manual')">Ajuste manual</button>
+      <button class="btn btn-primary" onclick="goTo('inbound')">+ Nuevo inbound</button>
+    </div>
+  </div>
+  <div class="alert alert-warn" style="margin-bottom:14px;"><div class="alert-dot"></div>2 SKUs con stock bajo el umbral mínimo — el merchant fue notificado.</div>
+  <div class="stat-grid stat-grid-5" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">SKUs activos</div><div class="stat-value">12</div></div>
+    <div class="stat-card"><div class="stat-label">Uds totales</div><div class="stat-value" style="color:var(--green);">847</div></div>
+    <div class="stat-card"><div class="stat-label">Reservadas</div><div class="stat-value" style="color:var(--purple);">134</div></div>
+    <div class="stat-card"><div class="stat-label">Stock bajo</div><div class="stat-value" style="color:var(--amber);">2</div></div>
+    <div class="stat-card"><div class="stat-label">Sin stock</div><div class="stat-value" style="color:var(--red);">1</div></div>
+  </div>
+  <div class="card">
+    <div class="filter-row">
+      <div class="search-box"><input placeholder="Buscar SKU, producto..."/></div>
+      <select class="filter-select"><option>Todos los merchants</option><option>Un Poco Mas Yo</option><option>Curio Shop</option><option>Daniela Diaz</option></select>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>SKU / Producto</th><th>Merchant</th><th>Ubicación</th><th>Disponible</th><th>Reservado</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><div style="font-weight:500;">Taza Cerámica Artesanal</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-010</div></td><td><span class="merchant-tag">Curio Shop</span></td><td><span style="font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);padding:2px 5px;border-radius:4px;">B-1-01</span></td><td style="color:var(--green);font-weight:500;">180</td><td style="color:var(--purple);">45</td><td style="font-weight:500;">225</td><td><span class="badge badge-ok">En stock</span></td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+        <tr><td><div style="font-weight:500;">Camiseta Lino Beige</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-001</div></td><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td><span style="font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);padding:2px 5px;border-radius:4px;">A-1-03</span></td><td style="color:var(--green);font-weight:500;">96</td><td style="color:var(--purple);">12</td><td style="font-weight:500;">108</td><td><span class="badge badge-ok">En stock</span></td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+        <tr style="background:rgba(250,238,218,0.2);"><td><div style="font-weight:500;">Vaso de Bambú 500ml</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-012</div></td><td><span class="merchant-tag">Curio Shop</span></td><td><span style="font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);padding:2px 5px;border-radius:4px;">C-1-03</span></td><td style="color:var(--amber);font-weight:500;">9</td><td style="color:var(--purple);">3</td><td style="font-weight:500;">12</td><td><span class="badge badge-low">Stock bajo</span></td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+        <tr style="background:rgba(252,235,235,0.2);"><td><div style="font-weight:500;">Aceite Esencial Lavanda</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-020</div></td><td><span class="merchant-tag">Daniela Diaz</span></td><td>—</td><td style="color:var(--red);font-weight:500;">0</td><td>0</td><td style="font-weight:500;">0</td><td><span class="badge badge-err">Sin stock</span></td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+function renderUbicaciones() {
+  const slots = [];
+  const data = [
+    {zone:'A',label:'Zona A — General',color:'var(--orange)',rows:['A-1','A-2'],states:['full','full','partial','empty','full','reserved','empty','empty']},
+    {zone:'B',label:'Zona B — Frágiles',color:'var(--blue)',rows:['B-1'],states:['full','full','partial','empty']},
+    {zone:'C',label:'Zona C — Merchant Curio',color:'var(--purple)',rows:['C-1','C-2'],states:['full','partial','empty','empty','full','full','empty','empty']},
+  ];
+  const legend = `<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-top:8px;">
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--green-bg);border:1px solid var(--green-bd);display:inline-block;"></span>Llena</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--amber-bg);border:1px solid var(--amber-bd);display:inline-block;"></span>Parcial</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--purple-bg);border:1px solid var(--purple-bd);display:inline-block;"></span>Reservada</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--surface2);border:1px solid var(--border);display:inline-block;"></span>Vacía</span>
+  </div>`;
+  let zonesHtml = '';
+  data.forEach(z => {
+    let slotRows = '';
+    z.rows.forEach((row,ri) => {
+      const rowStates = z.states.slice(ri*4, ri*4+4);
+      const slotCells = rowStates.map((s,si) => {
+        const colors = {full:`background:var(--green-bg);border:1px solid var(--green-bd);`,partial:`background:var(--amber-bg);border:1px solid var(--amber-bd);`,reserved:`background:var(--purple-bg);border:1px solid var(--purple-bd);`,empty:`background:var(--surface2);border:1px solid var(--border);`};
+        return `<div style="width:38px;height:32px;border-radius:4px;${colors[s]};display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--mono);color:var(--text3);cursor:pointer;" title="${row}-0${si+1}">${String(si+1).padStart(2,'0')}</div>`;
+      }).join('');
+      slotRows += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:11px;font-family:var(--mono);color:var(--text2);width:28px;">${row}</span><div style="display:flex;gap:4px;">${slotCells}</div></div>`;
+    });
+    zonesHtml += `<div class="card" style="margin-bottom:10px;">
+      <div class="card-header" style="background:var(--surface2);">
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:2px;background:${z.color};"></div><span class="card-title">${z.label}</span></div>
+        <button class="btn btn-secondary btn-sm">+ Ubicación</button>
+      </div>
+      <div style="padding:12px 14px;">${slotRows}</div>
+    </div>`;
+  });
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Ubicaciones</div><div class="page-sub">Mapa visual del almacén</div></div>
+    <div class="page-actions"><button class="btn btn-primary">+ Nueva zona</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Total ubicaciones</div><div class="stat-value">48</div></div>
+    <div class="stat-card"><div class="stat-label">Ocupadas</div><div class="stat-value" style="color:var(--green);">31</div></div>
+    <div class="stat-card"><div class="stat-label">Disponibles</div><div class="stat-value" style="color:var(--orange);">17</div></div>
+    <div class="stat-card"><div class="stat-label">Ocupación</div><div class="stat-value" style="color:var(--amber);">65%</div></div>
+  </div>
+  ${zonesHtml}
+  ${legend}`;
+}
+
+function renderPickPack() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Pick & Pack</div><div class="page-sub">Preparación de órdenes</div></div>
+  </div>
+  <div style="display:flex;height:calc(100vh - 200px);overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);">
+    <div class="split-left">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+        <div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div class="stat-card" style="padding:7px 8px;"><div class="stat-label">Pendientes</div><div class="stat-value" style="font-size:16px;color:var(--orange);">5</div></div>
+          <div class="stat-card" style="padding:7px 8px;"><div class="stat-label">Picking</div><div class="stat-value" style="font-size:16px;color:var(--blue);">2</div></div>
+          <div class="stat-card" style="padding:7px 8px;"><div class="stat-label">Packing</div><div class="stat-value" style="font-size:16px;color:var(--purple);">1</div></div>
+          <div class="stat-card" style="padding:7px 8px;"><div class="stat-label">Listos</div><div class="stat-value" style="font-size:16px;color:var(--green);">8</div></div>
+        </div>
+      </div>
+      <div class="split-body">
+        ${[
+          {n:'#9200560',m:'Curio Shop',d:'María González',s:'Picking',sc:'badge-blue',t:'Hoy 10:05',u:'4 uds',sel:true},
+          {n:'#9200561',m:'Un Poco Mas Yo',d:'Carlos Ramos',s:'Pendiente',sc:'badge-gray',t:'Hoy 10:22',u:'2 uds'},
+          {n:'#9200562',m:'Daniela Diaz',d:'Sofía Martínez',s:'Packing',sc:'badge-purple',t:'Hoy 09:48',u:'6 uds'},
+          {n:'#9200557',m:'Un Poco Mas Yo',d:'Ana Castillo',s:'Listo',sc:'badge-ok',t:'Hoy 08:30',u:'1 ud'},
+        ].map(o=>`<div class="list-item ${o.sel?'selected':''}" onclick="this.closest('.split-left').querySelectorAll('.list-item').forEach(x=>x.classList.remove('selected'));this.classList.add('selected')">
+          <div style="display:flex;justify-content:space-between;"><span class="item-num">${o.n}</span><span class="badge ${o.sc}">${o.s}</span></div>
+          <div class="item-meta"><span class="merchant-tag">${o.m}</span> → ${o.d}</div>
+          <div class="item-foot"><span>${o.t}</span><span>${o.u}</span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="split-right">
+      <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:13px;font-weight:600;">Orden #9200560 — Picking en progreso</div><div style="font-size:11px;color:var(--text2);">Curio Shop → María González</div></div>
+        <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm">Ver envío</button></div>
+      </div>
+      <div class="split-body" style="padding:14px 16px;">
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-header"><span class="card-title">Ítems a recoger</span><span style="font-size:11px;color:var(--text3);">1 de 2 completado</span></div>
+          <div class="prog-bar" style="height:6px;margin:0 14px 0;"><div class="prog-fill" id="pp-bar" style="width:50%;height:6px;background:var(--orange);"></div></div>
+          <div class="pick-row">
+            <div class="pick-check done" id="pc1" onclick="togglePick('pc1',this)"></div>
+            <div style="flex:1;"><div class="pick-name done">Taza Cerámica Artesanal</div><div style="font-size:11px;color:var(--text2);">Ubicación: <span class="loc-pill">B-1-01</span> Zona Frágiles</div></div>
+            <span style="font-size:11px;font-family:var(--mono);background:var(--surface2);padding:2px 5px;border-radius:4px;">SKU-010</span>
+            <div style="font-size:13px;font-weight:600;color:var(--text3);">×2</div>
+          </div>
+          <div class="pick-row">
+            <div class="pick-check" id="pc2" onclick="togglePick('pc2',this)"></div>
+            <div style="flex:1;"><div class="pick-name">Porta Plantas Macramé</div><div style="font-size:11px;color:var(--text2);">Ubicación: <span class="loc-pill">C-2-01</span> Zona C</div></div>
+            <span style="font-size:11px;font-family:var(--mono);background:var(--surface2);padding:2px 5px;border-radius:4px;">SKU-011</span>
+            <div style="font-size:13px;font-weight:600;">×2</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Empaque</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><div class="form-label">Tipo de caja</div><select class="form-select"><option>Caja mediana</option><option>Caja pequeña</option></select></div>
+              <div class="form-group"><div class="form-label">Peso real (lbs)</div><input type="number" class="form-input" value="1.8" step="0.1"/></div>
+              <div class="form-group"><div class="form-label">Frágil</div><select class="form-select"><option>Sí — marcar en label</option><option>No</option></select></div>
+              <div class="form-group"><div class="form-label">Notas</div><input class="form-input" placeholder="Instrucciones especiales..."/></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bar">
+        <span class="footer-hint">Marca todos los ítems para continuar</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-danger btn-sm">Reportar problema</button>
+          <button class="btn btn-primary btn-sm">Marcar empacado →</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTarifario() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Tarifario</div><div class="page-sub">Precios por servicio · Se aplican al generar cobros mensuales</div></div>
+    <div class="page-actions"><button class="btn btn-primary">+ Nuevo merchant</button></div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header"><span class="card-title">Merchants con tarifas configuradas</span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Merchant</th><th>Plan</th><th>Storage/ud/día</th><th>Recepción/ud</th><th>Pick&Pack/orden</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><span class="merchant-tag">Curio Shop</span></td><td><span class="badge badge-blue">Estándar</span></td><td>$0.01</td><td>$0.10</td><td>$1.50</td><td><span class="badge badge-ok">Activo</span></td><td><button class="btn btn-secondary btn-sm" onclick="showMerchantTariff('Curio Shop')">Editar</button></td></tr>
+        <tr><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td><span class="badge badge-blue">Estándar</span></td><td>$0.01</td><td>$0.10</td><td>$1.50</td><td><span class="badge badge-ok">Activo</span></td><td><button class="btn btn-secondary btn-sm" onclick="showMerchantTariff('Un Poco Mas Yo')">Editar</button></td></tr>
+        <tr><td><span class="merchant-tag">Daniela Diaz</span></td><td><span class="badge badge-purple">Premium</span></td><td>$0.008</td><td>$0.08</td><td>$1.20</td><td><span class="badge badge-ok">Activo</span></td><td><button class="btn btn-secondary btn-sm" onclick="showMerchantTariff('Daniela Diaz')">Editar</button></td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="col-2-1">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Tarifas — Curio Shop</span><button class="btn btn-primary btn-sm">Guardar cambios</button></div>
+      ${[
+        {icon:'📦',color:'var(--blue-bg)',name:'Almacenamiento',unit:'por unidad por día',val:'0.01',unit2:'/ ud / día'},
+        {icon:'📥',color:'var(--green-bg)',name:'Recepción de inbound',unit:'por unidad recibida',val:'0.10',unit2:'/ unidad'},
+        {icon:'📋',color:'var(--purple-bg)',name:'Pick & Pack',unit:'por orden preparada',val:'1.50',unit2:'/ orden'},
+        {icon:'↩️',color:'var(--amber-bg)',name:'Devoluciones',unit:'por unidad inspeccionada',val:'0.50',unit2:'/ unidad'},
+        {icon:'🚚',color:'var(--red-bg)',name:'Retiro de inventario',unit:'cuando merchant retira stock',val:'0.08',unit2:'/ unidad'},
+      ].map(s=>`<div class="svc-row">
+        <div class="svc-icon" style="background:${s.color};">${s.icon}</div>
+        <div style="flex:1;"><div class="svc-name">${s.name}</div><div class="svc-unit">${s.unit}</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-left:12px;">
+          <span style="font-size:11px;color:var(--text2);">$</span>
+          <input class="rate-input" type="number" value="${s.val}" step="0.01"/>
+          <span style="font-size:10px;color:var(--text3);">${s.unit2}</span>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="flex-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Estimado abril 2026</span></div>
+        <div class="card-body" style="padding:8px 14px;">
+          <div class="info-row"><span class="info-label">Almacenamiento</span><span class="info-value" style="color:var(--blue);">$58.50</span></div>
+          <div class="info-row"><span class="info-label">Recepción</span><span class="info-value" style="color:var(--green);">$9.00</span></div>
+          <div class="info-row"><span class="info-label">Pick & Pack</span><span class="info-value" style="color:var(--purple);">$70.50</span></div>
+          <div class="info-row"><span class="info-label">Otros</span><span class="info-value">$0.00</span></div>
+          <div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--border);font-size:14px;font-weight:500;"><span>Total</span><span style="color:var(--orange);">$138.00</span></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px;">Cobro automático el 1 de mayo vía wallet</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Período de cobro</span></div>
+        <div class="card-body" style="padding:8px 14px;">
+          <div class="info-row"><span class="info-label">Período</span><span class="info-value">Mensual</span></div>
+          <div class="info-row"><span class="info-label">Próximo cobro</span><span class="info-value">1 May 2026</span></div>
+          <div class="info-row"><span class="info-label">Balance wallet</span><span class="info-value" style="color:var(--green);">$10.00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderFacturacion() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Facturación</div><div class="page-sub">Cobros mensuales generados automáticamente</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>Abril 2026</option><option>Marzo 2026</option></select>
+      <button class="btn btn-secondary">Exportar CSV</button>
+      <button class="btn btn-primary">Generar cobros</button>
+    </div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Por cobrar (Abr)</div><div class="stat-value" style="color:var(--orange);">$412.50</div><div class="stat-sub">3 merchants</div></div>
+    <div class="stat-card"><div class="stat-label">Mar — cobrado</div><div class="stat-value" style="color:var(--green);">$387.20</div><div class="stat-sub">100% cobrado</div></div>
+    <div class="stat-card"><div class="stat-label">Feb — cobrado</div><div class="stat-value">$354.80</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue acumulado</div><div class="stat-value" style="color:var(--blue);">$1,154.50</div><div class="stat-sub">últimos 3 meses</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Detalle — Abril 2026</span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Merchant</th><th>Storage</th><th>Recepción</th><th>Pick & Pack</th><th>Otros</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><span class="merchant-tag">Curio Shop</span></td><td>$58.50</td><td>$9.00</td><td>$70.50</td><td>$0</td><td style="font-weight:500;color:var(--orange);">$138.00</td><td><span class="badge badge-low">Pendiente</span></td><td><button class="btn btn-secondary btn-sm">Detalle</button></td></tr>
+        <tr><td><span class="merchant-tag">Un Poco Mas Yo</span></td><td>$42.00</td><td>$7.80</td><td>$97.50</td><td>$0</td><td style="font-weight:500;color:var(--orange);">$147.30</td><td><span class="badge badge-low">Pendiente</span></td><td><button class="btn btn-secondary btn-sm">Detalle</button></td></tr>
+        <tr><td><span class="merchant-tag">Daniela Diaz</span></td><td>$28.80</td><td>$3.20</td><td>$45.60</td><td>$49.60</td><td style="font-weight:500;color:var(--orange);">$127.20</td><td><span class="badge badge-low">Pendiente</span></td><td><button class="btn btn-secondary btn-sm">Detalle</button></td></tr>
+      </tbody></table>
+    </div>
+    <div style="padding:12px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11px;color:var(--text2);">Cobros automáticos el 1 de mayo a las 00:00</span>
+      <div style="font-size:13px;font-weight:500;">Total: <span style="color:var(--orange);">$412.50</span></div>
+    </div>
+  </div>`;
+}
+
+function renderEmpleados() {
+  const employees = [
+    {initials:'VB',name:'Vianca B.',role:'Operadora de almacén',shift:'7am – 3pm',tasks:12,orders:8,status:'Activa',modules:['Inbound','Scanning','Inventario']},
+    {initials:'EP',name:'Ernesto P.',role:'Operador Pick & Pack',shift:'7am – 3pm',tasks:8,orders:15,status:'Activo',modules:['Pick & Pack','Despacho']},
+    {initials:'JR',name:'Jorge R.',role:'Conductor',shift:'8am – 5pm',tasks:0,orders:12,status:'En ruta',modules:['Despacho','Entregas']},
+    {initials:'ML',name:'María L.',role:'Supervisora',shift:'8am – 5pm',tasks:3,orders:0,status:'Activa',modules:['Todos los módulos']},
+  ];
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Empleados</div><div class="page-sub">Personal activo, turnos y productividad</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="showModal('nuevo-empleado')">+ Nuevo empleado</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Total empleados</div><div class="stat-value">4</div></div>
+    <div class="stat-card"><div class="stat-label">En turno hoy</div><div class="stat-value" style="color:var(--green);">4</div></div>
+    <div class="stat-card"><div class="stat-label">Tareas completadas</div><div class="stat-value" style="color:var(--blue);">23</div><div class="stat-sub">hoy</div></div>
+    <div class="stat-card"><div class="stat-label">Órdenes procesadas</div><div class="stat-value" style="color:var(--orange);">35</div><div class="stat-sub">hoy</div></div>
+  </div>
+  <div class="two-col" style="margin-bottom:14px;">
+    ${employees.map(e=>`<div class="emp-card">
+      <div class="emp-avatar">${e.initials}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="emp-name">${e.name}</div>
+          <span class="badge ${e.status==='Activa'||e.status==='Activo'?'badge-ok':e.status==='En ruta'?'badge-blue':'badge-gray'}">${e.status}</span>
+        </div>
+        <div class="emp-role">${e.role} · ${e.shift}</div>
+        <div class="emp-stats">
+          <span class="emp-stat">📋 ${e.tasks} tareas hoy</span>
+          ${e.orders?`<span class="emp-stat">📦 ${e.orders} órdenes</span>`:''}
+        </div>
+        <div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:4px;">
+          ${e.modules.map(m=>`<span style="font-size:10px;background:var(--orange-light);color:var(--orange);padding:2px 6px;border-radius:4px;">${m}</span>`).join('')}
+        </div>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Productividad del día — 21 Abr 2026</span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Empleado</th><th>Rol</th><th>Inbounds</th><th>Órdenes Pick</th><th>Órdenes Pack</th><th>Entregas</th><th>Tiempo turno</th></tr></thead>
+      <tbody>
+        <tr><td><div style="display:flex;align-items:center;gap:6px;"><div class="emp-avatar" style="width:24px;height:24px;font-size:9px;">VB</div>Vianca B.</div></td><td style="color:var(--text2);">Operadora</td><td style="color:var(--green);font-weight:500;">2</td><td>8</td><td>0</td><td>0</td><td style="color:var(--text2);">4h 20m</td></tr>
+        <tr><td><div style="display:flex;align-items:center;gap:6px;"><div class="emp-avatar" style="width:24px;height:24px;font-size:9px;">EP</div>Ernesto P.</div></td><td style="color:var(--text2);">Operador</td><td>0</td><td>7</td><td style="color:var(--purple);font-weight:500;">8</td><td>0</td><td style="color:var(--text2);">4h 20m</td></tr>
+        <tr><td><div style="display:flex;align-items:center;gap:6px;"><div class="emp-avatar" style="width:24px;height:24px;font-size:9px;">JR</div>Jorge R.</div></td><td style="color:var(--text2);">Conductor</td><td>0</td><td>0</td><td>0</td><td style="color:var(--blue);font-weight:500;">12</td><td style="color:var(--text2);">3h 45m</td></tr>
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+function renderDevoluciones() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Devoluciones</div><div class="page-sub">Gestión de retornos al almacén</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="showModal('nueva-devolucion')">+ Nueva devolución</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Pendientes inspección</div><div class="stat-value" style="color:var(--amber);">2</div></div>
+    <div class="stat-card"><div class="stat-label">Aprobadas para restock</div><div class="stat-value" style="color:var(--green);">5</div></div>
+    <div class="stat-card"><div class="stat-label">Descartadas</div><div class="stat-value" style="color:var(--red);">1</div></div>
+    <div class="stat-card"><div class="stat-label">Este mes</div><div class="stat-value">8</div></div>
+  </div>
+  <div class="col-1-2">
+    <div class="flex-col">
+      <div class="return-card selected">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--orange);font-weight:600;font-size:13px;">DEV-0012</span>
+          <span class="badge badge-low">Pendiente inspección</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);">Orden <span style="color:var(--orange);">#9200549</span> · Roberto Mena</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Motivo: Entrega fallida — cliente no disponible</div>
+        <div style="margin-top:6px;"><span class="merchant-tag">Curio Shop</span></div>
+      </div>
+      <div class="return-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--orange);font-weight:600;font-size:13px;">DEV-0011</span>
+          <span class="badge badge-low">Pendiente inspección</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);">Orden <span style="color:var(--orange);">#9200544</span> · Laura Gómez</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Motivo: Producto incorrecto recibido</div>
+        <div style="margin-top:6px;"><span class="merchant-tag">Un Poco Mas Yo</span></div>
+      </div>
+      <div class="return-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--orange);font-weight:600;font-size:13px;">DEV-0010</span>
+          <span class="badge badge-ok">Restock aprobado</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);">Orden <span style="color:var(--orange);">#9200540</span> · Pedro Vargas</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Producto en buen estado — ingresado al WMS</div>
+        <div style="margin-top:6px;"><span class="merchant-tag">Curio Shop</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">DEV-0012 — Inspección</div><div class="card-sub">Taza Cerámica Artesanal · SKU-010</div></div>
+        <span class="badge badge-low">Pendiente</span>
+      </div>
+      <div class="card-body">
+        <div class="section-title" style="margin-bottom:8px;">Información del retorno</div>
+        <div class="info-row"><span class="info-label">Orden original</span><span class="info-value" style="color:var(--orange);">#9200549</span></div>
+        <div class="info-row"><span class="info-label">Cliente</span><span class="info-value">Roberto Mena</span></div>
+        <div class="info-row"><span class="info-label">Merchant</span><span class="info-value"><span class="merchant-tag">Curio Shop</span></span></div>
+        <div class="info-row"><span class="info-label">Motivo</span><span class="info-value">Entrega fallida</span></div>
+        <div class="info-row"><span class="info-label">Producto</span><span class="info-value">Taza Cerámica Artesanal ×1</span></div>
+        <div class="spacer"></div>
+        <div class="section-title" style="margin-bottom:8px;">Resultado de inspección</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border:1px solid var(--green-bd);border-radius:var(--r-sm);background:var(--green-bg);cursor:pointer;">
+            <div style="width:12px;height:12px;border-radius:50%;border:1.5px solid var(--green);margin-top:1px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><div style="width:5px;height:5px;border-radius:50%;background:var(--green);"></div></div>
+            <div><div style="font-size:12px;font-weight:500;color:var(--green);">Apto para restock</div><div style="font-size:10px;color:var(--text2);">El producto está en buenas condiciones — reingresar al inventario</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;">
+            <div style="width:12px;height:12px;border-radius:50%;border:1.5px solid var(--border2);margin-top:1px;flex-shrink:0;"></div>
+            <div><div style="font-size:12px;font-weight:500;">Dañado — descartar</div><div style="font-size:10px;color:var(--text2);">El producto está dañado y no puede venderse</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;">
+            <div style="width:12px;height:12px;border-radius:50%;border:1.5px solid var(--border2);margin-top:1px;flex-shrink:0;"></div>
+            <div><div style="font-size:12px;font-weight:500;">Devolver al merchant</div><div style="font-size:10px;color:var(--text2);">Coordinar retiro por parte del merchant</div></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <div class="form-label">Notas de inspección</div>
+          <textarea class="form-textarea" placeholder="Describe el estado del producto..."></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-success" style="flex:1;">✓ Confirmar inspección</button>
+          <button class="btn btn-secondary">Tomar foto</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderReportes() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Reportes operativos</div><div class="page-sub">Analytics del almacén y productividad del equipo</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>Abril 2026</option><option>Marzo 2026</option><option>Q1 2026</option></select>
+      <button class="btn btn-secondary">Exportar PDF</button>
+    </div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Órdenes procesadas</div><div class="stat-value" style="color:var(--orange);">312</div><div class="stat-sub">+18% vs marzo</div></div>
+    <div class="stat-card"><div class="stat-label">Tiempo promedio pick</div><div class="stat-value" style="color:var(--blue);">8.2 min</div><div class="stat-sub">por orden</div></div>
+    <div class="stat-card"><div class="stat-label">Tasa de error</div><div class="stat-value" style="color:var(--green);">0.3%</div><div class="stat-sub">ítems incorrectos</div></div>
+    <div class="stat-card"><div class="stat-label">Ocupación promedio</div><div class="stat-value" style="color:var(--purple);">65%</div><div class="stat-sub">del almacén</div></div>
+  </div>
+  <div class="two-col" style="margin-bottom:14px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Órdenes por merchant</span></div>
+      <div class="card-body">
+        ${[{m:'Curio Shop',n:142,pct:46},{m:'Un Poco Mas Yo',n:118,pct:38},{m:'Daniela Diaz',n:52,pct:17}].map(r=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span class="merchant-tag" style="min-width:100px;">${r.m}</span>
+          <div style="flex:1;"><div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%;background:var(--orange);"></div></div></div>
+          <span style="font-size:12px;font-weight:500;min-width:28px;text-align:right;">${r.n}</span>
+          <span style="font-size:11px;color:var(--text3);min-width:30px;">${r.pct}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Revenue por servicio</span></div>
+      <div class="card-body">
+        ${[{s:'Pick & Pack',v:'$213.60',pct:52},{s:'Storage',v:'$129.30',pct:31},{s:'Otros',v:'$49.60',pct:12},{s:'Recepción',v:'$20.00',pct:5}].map(r=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:12px;color:var(--text2);min-width:90px;">${r.s}</span>
+          <div style="flex:1;"><div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%;background:var(--purple);"></div></div></div>
+          <span style="font-size:12px;font-weight:500;min-width:55px;text-align:right;">${r.v}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Productividad por empleado — Abril 2026</span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Empleado</th><th>Rol</th><th>Órdenes pick</th><th>Órdenes pack</th><th>Inbounds</th><th>Entregas</th><th>Tiempo promedio</th><th>Eficiencia</th></tr></thead>
+      <tbody>
+        <tr><td>Vianca B.</td><td style="color:var(--text2);">Operadora</td><td>89</td><td>0</td><td style="color:var(--green);font-weight:500;">18</td><td>0</td><td>7.8 min/orden</td><td><span class="badge badge-ok">Alta</span></td></tr>
+        <tr><td>Ernesto P.</td><td style="color:var(--text2);">Operador</td><td>87</td><td style="color:var(--purple);font-weight:500;">95</td><td>0</td><td>0</td><td>8.5 min/orden</td><td><span class="badge badge-ok">Alta</span></td></tr>
+        <tr><td>Jorge R.</td><td style="color:var(--text2);">Conductor</td><td>0</td><td>0</td><td>0</td><td style="color:var(--blue);font-weight:500;">136</td><td>—</td><td><span class="badge badge-ok">Alta</span></td></tr>
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// MERCHANT PAGES
+// ══════════════════════════════════════════════════════════
+
+function renderMerchantDashboard() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Mi fulfillment</div><div class="page-sub">Curio Shop · resumen de tu inventario y órdenes</div></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="goTo('m_inbound')">+ Enviar stock</button></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Unidades en almacén</div><div class="stat-value" style="color:var(--green);">383</div><div class="stat-sub">disponibles para despacho</div></div>
+    <div class="stat-card"><div class="stat-label">Órdenes en proceso</div><div class="stat-value" style="color:var(--blue);">3</div><div class="stat-sub">picking + packing</div></div>
+    <div class="stat-card"><div class="stat-label">SKUs bajo mínimo</div><div class="stat-value" style="color:var(--amber);">2</div><div class="stat-sub">necesitan reposición</div></div>
+    <div class="stat-card"><div class="stat-label">Estimado mes</div><div class="stat-value" style="color:var(--orange);">$138</div><div class="stat-sub">cobro el 1 de mayo</div></div>
+  </div>
+  <div class="alert alert-warn" style="margin-bottom:14px;"><div class="alert-dot"></div>2 productos por debajo del stock mínimo. Si no repones pronto las órdenes de esos productos no podrán procesarse. <span style="color:var(--orange);cursor:pointer;font-weight:500;margin-left:6px;" onclick="goTo('m_inbound')">Enviar stock ahora →</span></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Órdenes recientes</span><button class="btn btn-secondary btn-sm" onclick="goTo('m_ordenes')">Ver todas →</button></div>
+      <table><thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#9200560</span></td><td>María González</td><td><span class="badge badge-blue">Picking</span></td><td style="color:var(--text3);">Hoy 10:05</td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#9200558</span></td><td>Luis Herrera</td><td><span class="badge badge-ok">Listo</span></td><td style="color:var(--text3);">Hoy 08:30</td></tr>
+        <tr><td><span style="color:var(--orange);font-weight:500;">#9200556</span></td><td>Ana Castillo</td><td><span class="badge badge-gray">Despachado</span></td><td style="color:var(--text3);">Ayer</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Mi inventario (top SKUs)</span><button class="btn btn-secondary btn-sm" onclick="goTo('m_inventario')">Ver todo →</button></div>
+      <table><thead><tr><th>Producto</th><th>Disponible</th><th>Estado</th></tr></thead><tbody>
+        <tr><td><div style="font-weight:500;">Taza Cerámica</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-010</div></td><td style="color:var(--green);font-weight:500;">180</td><td><span class="badge badge-ok">Ok</span></td></tr>
+        <tr><td><div style="font-weight:500;">Porta Plantas</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-011</div></td><td style="color:var(--green);font-weight:500;">66</td><td><span class="badge badge-ok">Ok</span></td></tr>
+        <tr style="background:rgba(250,238,218,0.2);"><td><div style="font-weight:500;">Vaso Bambú</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">SKU-012</div></td><td style="color:var(--amber);font-weight:500;">9</td><td><span class="badge badge-low">Bajo</span></td></tr>
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+function renderMerchantInventario() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Mi inventario</div><div class="page-sub">Curio Shop · stock en tiempo real en el almacén Shippea</div></div>
+    <div class="page-actions"><button class="btn btn-secondary">Exportar</button><button class="btn btn-primary" onclick="goTo('m_inbound')">+ Enviar stock</button></div>
+  </div>
+  <div class="alert alert-warn" style="margin-bottom:14px;"><div class="alert-dot"></div>2 SKUs bajo el stock mínimo. Repón pronto para evitar cortes en tus órdenes.</div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Disponibles</div><div class="stat-value" style="color:var(--green);">383</div></div>
+    <div class="stat-card"><div class="stat-label">Reservadas</div><div class="stat-value" style="color:var(--purple);">62</div></div>
+    <div class="stat-card"><div class="stat-label">SKUs bajo mínimo</div><div class="stat-value" style="color:var(--amber);">2</div></div>
+    <div class="stat-card"><div class="stat-label">Inbound próximo</div><div class="stat-value" style="color:var(--blue);">90 uds</div><div class="stat-sub">llega 30 Abr</div></div>
+  </div>
+  <div class="card">
+    <div class="filter-row">
+      <div class="search-box"><input placeholder="Buscar producto..."/></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary btn-sm" style="background:var(--surface2);color:var(--orange);border:1px solid var(--orange-mid);">Todos</button>
+        <button class="btn btn-secondary btn-sm">En stock</button>
+        <button class="btn btn-secondary btn-sm">Stock bajo</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px;">
+      ${[
+        {name:'Taza Cerámica Artesanal',sku:'SKU-010',stock:180,loc:'B-1-01',s:'ok',days:85},
+        {name:'Porta Plantas Macramé',sku:'SKU-011',stock:66,loc:'C-2-01',s:'ok',days:45},
+        {name:'Vaso de Bambú 500ml',sku:'SKU-012',stock:9,loc:'C-1-03',s:'low',days:3},
+        {name:'Set Postres Cerámica',sku:'SKU-013',stock:48,loc:'C-1-02',s:'ok',days:30},
+        {name:'Plato Hondo Artesanal',sku:'SKU-014',stock:44,loc:'D-1-01',s:'ok',days:28},
+        {name:'Bowl Cerámica Grande',sku:'SKU-015',stock:8,loc:'D-2-03',s:'low',days:2},
+      ].map(p=>`<div style="background:var(--surface);border:1px solid ${p.s==='low'?'var(--amber-bd)':'var(--border)'};border-radius:var(--r);overflow:hidden;">
+        <div style="height:60px;background:${p.s==='low'?'var(--amber-bg)':'var(--surface2)'};border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;">
+          <div style="width:30px;height:30px;border-radius:6px;background:${p.s==='low'?'rgba(212,148,58,0.3)':'var(--border)'};"></div>
+        </div>
+        <div style="padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:2px;">${p.name}</div>
+          <div style="font-size:10px;font-family:var(--mono);color:var(--text3);margin-bottom:8px;">${p.sku}</div>
+          <div style="font-size:22px;font-weight:600;color:${p.s==='low'?'var(--amber)':'var(--green)'};">${p.stock}</div>
+          <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">uds disponibles</div>
+          <div class="prog-bar" style="margin-bottom:6px;"><div class="prog-fill" style="width:${Math.min(100,p.stock/2)}%;background:${p.s==='low'?'var(--amber)':'var(--green)'};"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="badge ${p.s==='low'?'badge-low':'badge-ok'}">${p.s==='low'?'Stock bajo':'En stock'}</span>
+            <span style="font-size:10px;font-family:var(--mono);color:var(--text3);">${p.loc}</span>
+          </div>
+          ${p.s==='low'?`<div style="margin-top:8px;padding:5px 8px;background:var(--amber-bg);border-radius:4px;font-size:10px;color:var(--amber);text-align:center;cursor:pointer;" onclick="goTo('m_inbound')">~${p.days} días de stock · Reponer →</div>`:''}
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderMerchantOrdenes() {
+  const orders = [
+    {n:'#9200560',c:'María González',s:'Picking',sc:'badge-blue',t:'Hoy 10:05',u:'4 uds',sel:true},
+    {n:'#9200558',c:'Luis Herrera',s:'Listo',sc:'badge-ok',t:'Hoy 08:30',u:'3 uds'},
+    {n:'#9200556',c:'Ana Castillo',s:'Despachado',sc:'badge-gray',t:'Ayer',u:'1 ud'},
+    {n:'#9200554',c:'Pedro Vargas',s:'Entregado',sc:'badge-ok',t:'Ayer',u:'5 uds'},
+    {n:'#9200549',c:'Roberto Mena',s:'Incidencia',sc:'badge-err',t:'23 Abr',u:'1 ud'},
+  ];
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Mis órdenes</div><div class="page-sub">Curio Shop · historial de despachos</div></div>
+    <div class="page-actions"><select class="filter-select"><option>Últimos 30 días</option><option>Esta semana</option><option>Hoy</option></select></div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">En proceso</div><div class="stat-value" style="color:var(--blue);">3</div></div>
+    <div class="stat-card"><div class="stat-label">Despachadas hoy</div><div class="stat-value" style="color:var(--orange);">8</div></div>
+    <div class="stat-card"><div class="stat-label">Entregadas (mes)</div><div class="stat-value" style="color:var(--green);">47</div></div>
+    <div class="stat-card"><div class="stat-label">Con incidencia</div><div class="stat-value" style="color:var(--red);">1</div></div>
+  </div>
+  <div style="display:flex;height:calc(100vh - 280px);overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);">
+    <div class="split-left">
+      <div class="tab-row" style="padding:0 12px;"><div class="tab active">Todas</div><div class="tab">En proceso</div><div class="tab">Despachadas</div><div class="tab">Entregadas</div></div>
+      <div class="split-body">
+        ${orders.map(o=>`<div class="list-item ${o.sel?'selected':''}">
+          <div style="display:flex;justify-content:space-between;"><span class="item-num">${o.n}</span><span class="badge ${o.sc}">${o.s}</span></div>
+          <div class="item-meta">→ ${o.c}</div>
+          <div class="item-foot"><span>${o.t}</span><span>${o.u}</span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="split-right">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:13px;font-weight:600;">Orden #9200560</div><div style="font-size:11px;color:var(--text2);">Curio Shop → María González</div></div>
+        <span class="badge badge-blue">Picking</span>
+      </div>
+      <div class="split-body" style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Estado del pedido</span></div>
+          <div class="card-body">
+            ${[
+              {dot:'var(--green)',line:'var(--green-bg)',title:'Orden recibida',time:'Hoy 10:05',done:true},
+              {dot:'var(--blue)',line:'var(--blue-bg)',title:'Picking en progreso',time:'Hoy 10:12 · Vianca B.',done:true},
+              {dot:'var(--border2)',line:'var(--border)',title:'Empaque y pesaje',time:'Pendiente',done:false},
+              {dot:'var(--border2)',line:'var(--border)',title:'Despachado',time:'Pendiente',done:false},
+              {dot:'var(--border2)',line:'',title:'Entregado al cliente',time:'Pendiente',done:false},
+            ].map((t,i,arr)=>`<div class="tl-item">
+              <div class="tl-wrap"><div class="tl-dot" style="background:${t.dot};"></div>${i<arr.length-1?`<div class="tl-line" style="background:${t.line};"></div>`:''}</div>
+              <div class="tl-content"><div class="tl-title ${t.done?'':'muted'}">${t.title}</div><div class="tl-time">${t.time}</div></div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Costo del servicio</span></div>
+          <div class="card-body" style="padding:6px 14px;">
+            <div class="info-row"><span class="info-label">Pick & Pack</span><span class="info-value">$1.50</span></div>
+            <div class="info-row"><span class="info-label">Envío puerta a puerta</span><span class="info-value">$5.00</span></div>
+            <div class="info-row"><span class="info-label">Storage (14 días)</span><span class="info-value">$0.28</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:7px;margin-top:4px;border-top:1px solid var(--border);font-size:13px;font-weight:500;"><span>Total</span><span style="color:var(--orange);">$6.78</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMerchantInbound() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Enviar stock al almacén</div><div class="page-sub">Crea un aviso para que el equipo de Shippea prepare la recepción</div></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      ${[1,2,3].map((s,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:24px;height:24px;border-radius:50%;${i===0?'background:var(--orange);color:white;':'background:var(--surface2);border:1px solid var(--border);color:var(--text3);'}font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;">${s}</div><div style="font-size:9px;color:${i===0?'var(--orange)':'var(--text3)'};">${['Detalles','Productos','Confirmar'][i]}</div></div>${i<2?`<div style="width:24px;height:1px;background:var(--border);margin-bottom:12px;"></div>`:''}`).join('')}
+    </div>
+  </div>
+  <div class="col-2-1">
+    <div class="flex-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Detalles del envío</span></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group"><div class="form-label">Fecha estimada de llegada <span>*</span></div><input type="date" class="form-input" value="2026-04-30"/></div>
+            <div class="form-group"><div class="form-label">Número de cajas aprox.</div><input type="number" class="form-input" placeholder="Ej. 3"/></div>
+            <div class="form-group full"><div class="form-label">¿Cómo llega el stock? <span>*</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+                ${[{icon:'🚶',n:'Yo lo llevo',d:'Entrega directa',sel:true},{icon:'📦',n:'Courier externo',d:'Mensajería'},{icon:'🚚',n:'Hot Express',d:'Coordinamos pickup'},{icon:'📮',n:'Uno Express',d:'Coordinamos pickup'}].map(m=>`
+                <div style="border:1px solid ${m.sel?'var(--orange)':'var(--border)'};border-radius:var(--r-sm);padding:9px 10px;cursor:pointer;background:${m.sel?'var(--orange-light)':'none'};">
+                  <div style="font-size:16px;margin-bottom:4px;">${m.icon}</div>
+                  <div style="font-size:11px;font-weight:500;color:${m.sel?'var(--orange)':'var(--text)'};">${m.n}</div>
+                  <div style="font-size:10px;color:var(--text3);">${m.d}</div>
+                </div>`).join('')}
+              </div>
+            </div>
+            <div class="form-group full"><div class="form-label">Instrucciones especiales</div><textarea class="form-textarea" placeholder="Frágiles, temperatura especial..."></textarea></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Productos a enviar</span><span class="card-sub">3 SKUs · 78 uds</span></div>
+        <table><thead><tr><th>Producto</th><th>Cant. a enviar</th><th>Stock actual</th><th></th></tr></thead>
+        <tbody>
+          ${[
+            {name:'Taza Cerámica Artesanal',sku:'SKU-010',qty:30,stock:180,s:'ok'},
+            {name:'Porta Plantas Macramé',sku:'SKU-011',qty:24,stock:66,s:'ok'},
+            {name:'Vaso de Bambú 500ml',sku:'SKU-012',qty:24,stock:9,s:'low'},
+          ].map(p=>`<tr>
+            <td><div style="font-weight:500;">${p.name}</div><div style="font-size:10px;font-family:var(--mono);color:var(--text3);">${p.sku}</div><span class="badge ${p.s==='low'?'badge-low':'badge-ok'}" style="margin-top:3px;">${p.s==='low'?'Stock bajo':'En stock'}</span></td>
+            <td><div style="display:inline-flex;align-items:center;border:1px solid var(--border2);border-radius:var(--r-sm);overflow:hidden;">
+              <button style="width:28px;height:28px;background:var(--surface2);border:none;cursor:pointer;font-size:14px;">−</button>
+              <input type="number" value="${p.qty}" style="width:44px;height:28px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-size:12px;font-weight:600;background:var(--surface);outline:none;"/>
+              <button style="width:28px;height:28px;background:var(--surface2);border:none;cursor:pointer;font-size:14px;">+</button>
+            </div></td>
+            <td style="color:${p.s==='low'?'var(--amber)':'var(--green)'};font-weight:500;">${p.stock} uds</td>
+            <td><button style="background:none;border:none;font-size:16px;color:var(--text3);cursor:pointer;">×</button></td>
+          </tr>`).join('')}
+        </tbody></table>
+        <div style="padding:9px 14px;"><button class="btn btn-secondary btn-sm">+ Agregar producto</button></div>
+      </div>
+    </div>
+    <div class="flex-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Resumen</span></div>
+        <div class="card-body" style="padding:6px 14px;">
+          <div class="info-row"><span class="info-label">Fecha estimada</span><span class="info-value">30 Abr 2026</span></div>
+          <div class="info-row"><span class="info-label">Método</span><span class="info-value">Yo lo llevo</span></div>
+          <div class="info-row"><span class="info-label">SKUs</span><span class="info-value">3</span></div>
+          <div class="info-row"><span class="info-label">Unidades totales</span><span class="info-value" style="color:var(--orange);">78</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Costo de recepción</span></div>
+        <div class="card-body" style="padding:6px 14px;">
+          <div class="info-row"><span class="info-label">Fee por unidad</span><span class="info-value">$0.10</span></div>
+          <div class="info-row"><span class="info-label">Unidades</span><span class="info-value">78</span></div>
+          <div style="display:flex;justify-content:space-between;padding-top:7px;margin-top:4px;border-top:1px solid var(--border);font-size:13px;font-weight:500;"><span>Total</span><span style="color:var(--orange);">$7.80</span></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px;">Se descuenta de tu wallet al completar la recepción.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Dirección del almacén</span></div>
+        <div class="card-body">
+          <div style="font-size:12px;font-weight:500;margin-bottom:4px;">Shippea Fulfillment Center</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.6;">Calle 67 y 68, detrás de la casa de la carne<br>Vía Porras, Panamá</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;">Lun–Vie 8:00am – 5:00pm · Sáb 8:00am – 12:00pm</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" style="flex:1;">Guardar borrador</button>
+        <button class="btn btn-primary" style="flex:2;">Crear inbound →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMerchantReportes() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">Mis reportes</div><div class="page-sub">Curio Shop · rendimiento y costos de fulfillment</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>Abril 2026</option><option>Marzo 2026</option></select>
+      <button class="btn btn-primary">Descargar PDF</button>
+    </div>
+  </div>
+  <div class="stat-grid stat-grid-4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-label">Órdenes despachadas</div><div class="stat-value" style="color:var(--green);">47</div><div class="stat-sub">este mes</div></div>
+    <div class="stat-card"><div class="stat-label">Tasa de entrega</div><div class="stat-value" style="color:var(--green);">97.8%</div></div>
+    <div class="stat-card"><div class="stat-label">Devoluciones</div><div class="stat-value" style="color:var(--amber);">1</div></div>
+    <div class="stat-card"><div class="stat-label">Costo total mes</div><div class="stat-value" style="color:var(--orange);">$138.00</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Desglose de costos — Abril 2026</span></div>
+      <div class="card-body">
+        ${[{s:'Pick & Pack',v:'$70.50',pct:51,c:'var(--purple)'},{s:'Almacenamiento',v:'$58.50',pct:42,c:'var(--blue)'},{s:'Recepción de inbound',v:'$9.00',pct:7,c:'var(--green)'}].map(r=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:11px;color:var(--text2);min-width:130px;">${r.s}</span>
+          <div style="flex:1;"><div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%;background:${r.c};"></div></div></div>
+          <span style="font-size:12px;font-weight:500;min-width:50px;text-align:right;">${r.v}</span>
+        </div>`).join('')}
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;font-size:13px;font-weight:500;"><span>Total</span><span style="color:var(--orange);">$138.00</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Historial de cobros</span></div>
+      <div class="card-body" style="padding:4px 14px;">
+        <div class="info-row"><span class="info-label">Abril 2026</span><span style="color:var(--amber);font-weight:500;">$138.00 — pendiente</span></div>
+        <div class="info-row"><span class="info-label">Marzo 2026</span><span style="color:var(--green);font-weight:500;">$127.40 ✓</span></div>
+        <div class="info-row"><span class="info-label">Febrero 2026</span><span style="color:var(--green);font-weight:500;">$115.80 ✓</span></div>
+        <div class="info-row"><span class="info-label">Enero 2026</span><span style="color:var(--green);font-weight:500;">$98.20 ✓</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── MODALS ────────────────────────────────────────────────
+function showModal(type) {
+  const configs = {
+    'nuevo-inbound': {
+      title:'Nuevo inbound', sub:'Aviso de envío al almacén',
+      body:`<div class="form-grid">
+        <div class="form-group"><div class="form-label">Merchant <span>*</span></div><select class="form-select"><option>Curio Shop</option><option>Un Poco Mas Yo</option><option>Daniela Diaz</option></select></div>
+        <div class="form-group"><div class="form-label">Fecha esperada <span>*</span></div><input type="date" class="form-input" value="2026-04-30"/></div>
+        <div class="form-group"><div class="form-label">Método de entrega</div><select class="form-select"><option>Merchant trae</option><option>Courier externo</option><option>Hot Express</option></select></div>
+        <div class="form-group"><div class="form-label">Cajas estimadas</div><input type="number" class="form-input" placeholder="Ej. 3"/></div>
+        <div class="form-group full"><div class="form-label">Notas</div><textarea class="form-textarea" placeholder="Instrucciones especiales..."></textarea></div>
+      </div>`,
+      footer:`<span class="footer-hint">El merchant recibirá una notificación</span><div style="display:flex;gap:8px;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="closeModal()">Crear inbound</button></div>`
+    },
+    'ajuste-manual': {
+      title:'Ajuste manual de inventario', sub:'El cambio queda en el historial del SKU',
+      body:`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Taza Cerámica Artesanal</div><div style="font-size:11px;font-family:var(--mono);color:var(--text3);">SKU-010 · Curio Shop</div></div>
+        <span class="badge badge-ok">180 disponibles</span>
+      </div>
+      <div class="form-group"><div class="form-label">Tipo de ajuste</div>
+        <div style="display:flex;gap:7px;"><button class="btn btn-success btn-sm">+ Agregar</button><button class="btn btn-secondary btn-sm">− Retirar</button><button class="btn btn-secondary btn-sm">= Establecer</button></div>
+      </div>
+      <div class="form-group"><div class="form-label">Cantidad</div>
+        <div style="display:inline-flex;align-items:center;border:1px solid var(--border2);border-radius:var(--r-sm);overflow:hidden;">
+          <button style="width:32px;height:32px;background:var(--surface2);border:none;cursor:pointer;font-size:16px;">−</button>
+          <input type="number" value="5" style="width:50px;height:32px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-size:14px;font-weight:600;background:var(--surface);outline:none;"/>
+          <button style="width:32px;height:32px;background:var(--surface2);border:none;cursor:pointer;font-size:16px;">+</button>
+        </div>
+      </div>
+      <div class="form-group"><div class="form-label">Motivo <span>*</span></div><select class="form-select"><option>Seleccionar...</option><option>Conteo físico — corrección</option><option>Producto dañado — baja</option><option>Devolución de cliente</option></select></div>
+      <div class="form-group"><div class="form-label">Notas</div><textarea class="form-textarea" placeholder="Describe el motivo..."></textarea></div>`,
+      footer:`<span class="footer-hint">Requiere motivo para auditoría</span><div style="display:flex;gap:8px;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="closeModal()">Aplicar ajuste</button></div>`
+    },
+    'nuevo-empleado': {
+      title:'Nuevo empleado', sub:'Agregar operador al equipo de fulfillment',
+      body:`<div class="form-grid">
+        <div class="form-group"><div class="form-label">Nombre completo <span>*</span></div><input class="form-input" placeholder="Nombre y apellido"/></div>
+        <div class="form-group"><div class="form-label">Email <span>*</span></div><input type="email" class="form-input" placeholder="correo@email.com"/></div>
+        <div class="form-group"><div class="form-label">Rol <span>*</span></div><select class="form-select"><option>Operador de almacén</option><option>Pick & Pack</option><option>Conductor</option><option>Supervisor</option></select></div>
+        <div class="form-group"><div class="form-label">Turno</div><select class="form-select"><option>7am – 3pm</option><option>3pm – 11pm</option><option>8am – 5pm</option></select></div>
+        <div class="form-group full"><div class="form-label">Módulos con acceso</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+            ${['Inbound','Scanning','Inventario','Pick & Pack','Despacho','Ubicaciones'].map(m=>`<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" checked/>${m}</label>`).join('')}
+          </div>
+        </div>
+      </div>`,
+      footer:`<span class="footer-hint">El empleado recibirá un email de activación</span><div style="display:flex;gap:8px;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="closeModal()">Crear empleado</button></div>`
+    },
+    'nueva-devolucion': {
+      title:'Registrar devolución', sub:'Ingreso de retorno al almacén',
+      body:`<div class="form-grid">
+        <div class="form-group"><div class="form-label">Orden original <span>*</span></div><input class="form-input" placeholder="#9200xxx"/></div>
+        <div class="form-group"><div class="form-label">Merchant</div><select class="form-select"><option>Curio Shop</option><option>Un Poco Mas Yo</option></select></div>
+        <div class="form-group"><div class="form-label">Motivo de devolución <span>*</span></div><select class="form-select"><option>Entrega fallida</option><option>Producto incorrecto</option><option>Producto dañado</option><option>Cliente rechazó</option><option>Otro</option></select></div>
+        <div class="form-group"><div class="form-label">SKU afectado</div><input class="form-input" placeholder="SKU-xxx"/></div>
+        <div class="form-group full"><div class="form-label">Notas</div><textarea class="form-textarea" placeholder="Detalle del retorno..."></textarea></div>
+      </div>`,
+      footer:`<span class="footer-hint">Se notificará al merchant automáticamente</span><div style="display:flex;gap:8px;"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="closeModal()">Registrar</button></div>`
+    },
+  };
+  const c = configs[type];
+  if(!c) return;
+  document.getElementById('modal-title').textContent = c.title;
+  document.getElementById('modal-sub').textContent = c.sub;
+  document.getElementById('modal-body').innerHTML = c.body;
+  document.getElementById('modal-footer').innerHTML = c.footer;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target===document.getElementById('modal')) closeModal(); });
+
+function showMerchantTariff(name) {
+  document.querySelector('.card-title') && null;
+  const headers = document.querySelectorAll('.card-title');
+  headers.forEach(h=>{ if(h.textContent.startsWith('Tarifas —')) h.textContent = `Tarifas — ${name}`; });
+}
+
+function attachHandlers(page) {
+  if(page==='pickpack') {
+    window.togglePick = function(id, el) {
+      el.classList.toggle('done');
+      const row = el.closest('.pick-row');
+      const name = row.querySelector('.pick-name');
+      name.classList.toggle('done');
+      const done = document.querySelectorAll('.pick-check.done').length;
+      const total = document.querySelectorAll('.pick-check').length;
+      const bar = document.getElementById('pp-bar');
+      if(bar) bar.style.width = Math.round(done/total*100)+'%';
+    };
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────
+setMode('admin', document.querySelector('.mode-btn.active'));
+</script>
+</body>
+</html>
